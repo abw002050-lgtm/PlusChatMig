@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+
     - name: Checkout Repository
       uses: actions/checkout@v4
 
@@ -26,14 +27,40 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
+    - name: Find Android Project
+      run: |
+        PROJECT_DIR=$(dirname "$(find . -name gradlew -type f -print -quit)")
+
+        if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
+          echo "Project root detected at repository root"
+          echo "PROJECT_DIR=." >> "$GITHUB_ENV"
+        else
+          echo "Project root detected at: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+        fi
+
     - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
+      run: |
+        chmod +x "$PROJECT_DIR/gradlew"
 
     - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      run: |
+        cd "$PROJECT_DIR"
+        ./gradlew assembleDebug
+
+    - name: Find APK
+      run: |
+        APK_PATH=$(find . -path "*/build/outputs/apk/debug/app-debug.apk" -type f -print -quit)
+
+        if [ -z "$APK_PATH" ]; then
+          echo "APK not found"
+          exit 1
+        fi
+
+        echo "APK found at: $APK_PATH"
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: ChatMigModern-V27-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: "**/build/outputs/apk/debug/app-debug.apk"
