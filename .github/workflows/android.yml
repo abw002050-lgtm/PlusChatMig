@@ -2,7 +2,10 @@ name: Android Build - ChatMigModern V27
 
 on:
   push:
-    branches: [ "main", "master", "رئيسي" ]
+    branches:
+      - main
+      - master
+      - رئيسي
   workflow_dispatch:
 
 jobs:
@@ -11,84 +14,64 @@ jobs:
 
     steps:
 
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-    - name: Unzip Project Files
-      run: |
-        unzip -o ChatMigModern_V27_GitHub-1.zip -d .
+      - name: Unzip Project Files
+        run: |
+          unzip -o ChatMigModern_V27_GitHub-1.zip -d .
 
-    - name: Setup JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
+      - name: Verify Android Project
+        run: |
+          echo "=== Project Root ==="
+          pwd
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
+          echo "=== Root Files ==="
+          ls -la
 
-    - name: Locate Android Project
-      run: |
-        echo "=== Searching for Gradle project ==="
+          echo "=== Gradle Files ==="
+          ls -la settings.gradle.kts
+          ls -la build.gradle.kts
+          ls -la app/build.gradle.kts
 
-        find . -maxdepth 5 \
-          \( -name "settings.gradle" -o \
-             -name "settings.gradle.kts" -o \
-             -name "build.gradle" -o \
-             -name "build.gradle.kts" \) \
-          -print
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-        echo "=== Searching for Gradle Wrapper ==="
+      - name: Setup Gradle 8.11.1
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.11.1'
 
-        find . -maxdepth 6 -name "gradlew" -type f -print
-
-    - name: Prepare Gradle Wrapper
-      run: |
-        GRADLEW=$(find . -name "gradlew" -type f -print -quit)
-
-        if [ -n "$GRADLEW" ]; then
-          PROJECT_DIR=$(dirname "$GRADLEW")
-          echo "Existing Gradle Wrapper found:"
-          echo "$GRADLEW"
-        else
-          PROJECT_DIR=$(dirname "$(find . \
-            \( -name "settings.gradle" -o \
-               -name "settings.gradle.kts" \) \
-            -type f -print -quit)")
-
-          if [ -z "$PROJECT_DIR" ] || [ "$PROJECT_DIR" = "." ]; then
-            echo "Could not locate Android Gradle project."
-            echo "Project contents:"
-            find . -maxdepth 4 -type f | head -200
-            exit 1
-          fi
-
-          echo "Gradle project found at: $PROJECT_DIR"
-
-          cd "$PROJECT_DIR"
-
+      - name: Create Gradle Wrapper
+        run: |
+          echo "=== Creating Gradle Wrapper ==="
           gradle wrapper --gradle-version 8.11.1
-        fi
 
-        echo "PROJECT_DIR=$PROJECT_DIR" >> "$GITHUB_ENV"
+      - name: Verify Gradle Wrapper
+        run: |
+          echo "=== Wrapper Files ==="
+          ls -la gradlew
+          ls -la gradle/wrapper
 
-    - name: Grant execute permission
-      run: |
-        chmod +x "$PROJECT_DIR/gradlew"
+      - name: Grant execute permission
+        run: |
+          chmod +x ./gradlew
 
-    - name: Build Debug APK
-      run: |
-        cd "$PROJECT_DIR"
-        ./gradlew assembleDebug --stacktrace
+      - name: Build Debug APK
+        run: |
+          ./gradlew assembleDebug --stacktrace
 
-    - name: Locate APK
-      run: |
-        echo "=== APK files ==="
-        find . -type f -name "*.apk" -print
+      - name: Locate APK
+        run: |
+          echo "=== APK Files ==="
+          find . -type f -name "*.apk" -print
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: ChatMigModern-V27-debug
-        path: "**/build/outputs/apk/debug/*.apk"
-        if-no-files-found: error
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ChatMigModern-V27-debug
+          path: "**/build/outputs/apk/debug/*.apk"
+          if-no-files-found: error
