@@ -1,6 +1,8 @@
-concurrency:name: Extract Project Files Automatically
+name: Extract Project Files Automatically
 
 on:
+  push:
+    branches: [ "main", "master", "رئيسي" ]
   workflow_dispatch:
 
 jobs:
@@ -15,9 +17,8 @@ jobs:
 
     - name: Unzip Project Files
       run: |
-        unzip -o ChatMigModern_V27_FIXED.zip -d .
-        rm ChatMigModern_V27_FIXED.zip
-        rm -f ChatMigModern_V27_GitHub-1.zip
+        unzip -o ChatMigModern_V27_FIXED.zip -d . || unzip -o ChatMigModern_V27_GitHub-1.zip -d .
+        rm -f ChatMigModern_V27_FIXED.zip ChatMigModern_V27_GitHub-1.zip
 
     - name: Commit and Push Clean Files
       run: |
@@ -26,4 +27,3 @@ jobs:
         git add .
         git commit -m "Unzip project files into root directory" || echo "No changes to commit"
         git push
- 
