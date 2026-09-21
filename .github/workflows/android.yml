@@ -19,34 +19,41 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-
-    - name: Extract ZIP File via Python
+    - name: Extract ALL ZIP Files via Python
       run: |
         python3 -c "
         import zipfile, os, glob
-        zip_files = glob.glob('*.zip') + glob.glob('*/*.zip')
-        if zip_files:
-            print(f'Found zip: {zip_files[0]}')
-            with zipfile.ZipFile(zip_files[0], 'r') as zip_ref:
-                zip_ref.extractall('.')
-            print('Successfully extracted all files!')
-        else:
-            print('No zip file found, assuming repository is already unzipped.')
+
+        # البحث عن جميع ملفات الـ ZIP في أي مكان بالمستودع
+        zip_files = glob.glob('**/*.zip', recursive=True) + glob.glob('*.zip')
+        print(f'Found {len(zip_files)} zip file(s): {zip_files}')
+
+        for z in zip_files:
+            print(f'Extracting: {z}')
+            try:
+                with zipfile.ZipFile(z, 'r') as zip_ref:
+                    zip_ref.extractall('.')
+            except Exception as e:
+                print(f'Failed to extract {z}: {e}')
+        print('Extraction complete!')
         "
 
     - name: Locate Project & Grant Permissions
       run: |
-        GRADLEW_PATH=$(find . -name gradlew -type f | head -n 1)
+        # البحث عن ملف gradlew في كل المجلدات الشجرة
+        GRADLEW_PATH=$(find . -name "gradlew" -type f | head -n 1)
+        
         if [ -z "$GRADLEW_PATH" ]; then
-          echo "Error: gradlew file not found after extraction!"
+          echo "Listing all directories to debug structure:"
+          ls -R
+          echo "Error: gradlew file still not found!"
           exit 1
         fi
+        
         PROJECT_DIR=$(dirname "$GRADLEW_PATH")
         echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
         chmod +x "$GRADLEW_PATH"
-        echo "Project path: $PROJECT_DIR"
+        echo "Successfully found project at: $PROJECT_DIR"
 
     - name: Build Debug APK
       run: |
