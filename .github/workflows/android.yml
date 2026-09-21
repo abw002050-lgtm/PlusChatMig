@@ -20,8 +20,13 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Make gradlew executable
-      run: chmod +x ./gradlew
+    - name: Ensure gradlew exists and grant permissions
+      run: |
+        if [ ! -f ./gradlew ]; then
+          echo "gradlew not found in root, generating wrapper..."
+          gradle wrapper
+        fi
+        chmod +x ./gradlew
 
     - name: Build Debug APK
       run: ./gradlew assembleDebug --stacktrace
