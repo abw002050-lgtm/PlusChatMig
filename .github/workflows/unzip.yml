@@ -1,0 +1,46 @@
+name: Unzip Repository Content
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unzip all zip files
+        run: |
+          shopt -s nullglob
+          for f in *.zip; do
+            echo "📦 فك ضغط: $f"
+            unzip -o "$f" -d _tmp_extract
+          done
+          shopt -u nullglob
+
+      - name: Move contents to root
+        run: |
+          if [ -d _tmp_extract ]; then
+            shopt -s dotglob
+            mv _tmp_extract/* . || true
+            rm -rf _tmp_extract
+          fi
+          rm -f *.zip
+          echo "✅ تم فك الضغط وحذف ملفات ZIP"
+
+      - name: Show final structure
+        run: |
+          echo "📁 هيكل المستودع بعد فك الضغط:"
+          ls -la
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "فك ضغط محتويات المستودع تلقائيًا" || echo "لا يوجد تغيير"
+          git push
