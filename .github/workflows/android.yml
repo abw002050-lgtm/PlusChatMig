@@ -20,19 +20,21 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Ensure gradlew exists and grant permissions
-      run: |
-        if [ ! -f ./gradlew ]; then
-          echo "gradlew not found in root, generating wrapper..."
-          gradle wrapper
-        fi
-        chmod +x ./gradlew
-
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: |
+        # البحث عن ملف gradlew وتشغيله أينما كان موقعه داخل المستودع
+        GRADLEW_PATH=$(find . -name gradlew -type f | head -n 1)
+        if [ -z "$GRADLEW_PATH" ]; then
+          echo "لم يتم العثور على ملف gradlew، جاري إنشاؤه..."
+          gradle wrapper
+          GRADLEW_PATH="./gradlew"
+        fi
+        chmod +x "$GRADLEW_PATH"
+        cd $(dirname "$GRADLEW_PATH")
+        ./gradlew assembleDebug --stacktrace
 
     - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: "**/build/outputs/apk/debug/app-debug.apk"
