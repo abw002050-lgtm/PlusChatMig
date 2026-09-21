@@ -19,49 +19,31 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Extract ALL ZIP Files via Python
+    - name: Extract ZIP Files if Exists
       run: |
         python3 -c "
-        import zipfile, os, glob
-
-        # البحث عن جميع ملفات الـ ZIP في أي مكان بالمستودع
-        zip_files = glob.glob('**/*.zip', recursive=True) + glob.glob('*.zip')
-        print(f'Found {len(zip_files)} zip file(s): {zip_files}')
-
-        for z in zip_files:
-            print(f'Extracting: {z}')
+        import zipfile, glob
+        for z in glob.glob('*.zip'):
             try:
                 with zipfile.ZipFile(z, 'r') as zip_ref:
                     zip_ref.extractall('.')
             except Exception as e:
-                print(f'Failed to extract {z}: {e}')
-        print('Extraction complete!')
+                print(e)
         "
 
-    - name: Locate Project & Grant Permissions
+    - name: Setup Gradle Wrapper if Missing
       run: |
-        # البحث عن ملف gradlew في كل المجلدات الشجرة
-        GRADLEW_PATH=$(find . -name "gradlew" -type f | head -n 1)
-        
-        if [ -z "$GRADLEW_PATH" ]; then
-          echo "Listing all directories to debug structure:"
-          ls -R
-          echo "Error: gradlew file still not found!"
-          exit 1
+        if [ ! -f "gradlew" ]; then
+          echo "gradlew not found. Generating Gradle Wrapper..."
+          gradle wrapper
         fi
-        
-        PROJECT_DIR=$(dirname "$GRADLEW_PATH")
-        echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
-        chmod +x "$GRADLEW_PATH"
-        echo "Successfully found project at: $PROJECT_DIR"
+        chmod +x gradlew
 
     - name: Build Debug APK
-      run: |
-        cd "${{ env.PROJECT_DIR }}"
-        ./gradlew assembleDebug --no-daemon
+      run: ./gradlew assembleDebug --no-daemon
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: "app/build/outputs/apk/debug/*.apk"
