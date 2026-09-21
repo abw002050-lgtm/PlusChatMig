@@ -22,21 +22,24 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Setup Firebase Config (Optional)
+    - name: Find Project Directory & Grant Permissions
       run: |
-        mkdir -p app
-        if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > app/google-services.json
+        GRADLEW_PATH=$(find . -maxdepth 3 -name gradlew | head -n 1)
+        if [ -z "$GRADLEW_PATH" ]; then
+          echo "Could not find gradlew file!"
+          exit 1
         fi
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew || true
+        PROJECT_DIR=$(dirname "$GRADLEW_PATH")
+        echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+        chmod +x "$GRADLEW_PATH"
 
     - name: Build with Gradle
-      run: ./gradlew assembleDebug
+      run: |
+        cd ${{ env.PROJECT_DIR }}
+        ./gradlew assembleDebug
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        path: "**/build/outputs/apk/debug/app-debug.apk"
