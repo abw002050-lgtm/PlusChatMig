@@ -17,9 +17,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Unzip Project Files
+      - name: Unzip FIXED Project Files
         run: |
-          unzip -o ChatMigModern_V27_GitHub-1.zip -d .
+          echo "=== Extracting ChatMigModern V27 FIXED ==="
+          unzip -o ChatMigModern_V27_FIXED.zip -d .
 
       - name: Verify Android Project
         run: |
@@ -82,6 +83,7 @@ jobs:
 
       - name: Build Debug APK
         run: |
+          echo "=== Building ChatMigModern V27 FIXED ==="
           ./gradlew assembleDebug --stacktrace
 
       - name: Locate APK
@@ -92,6 +94,6 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ChatMigModern-V27-debug
+          name: ChatMigModern-V27-FIXED-debug
           path: "**/build/outputs/apk/debug/*.apk"
           if-no-files-found: error
