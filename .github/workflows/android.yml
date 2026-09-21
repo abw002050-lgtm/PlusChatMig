@@ -22,36 +22,33 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Extract ZIP & Locate Gradle Project
+    - name: Extract ZIP File via Python
       run: |
-        # البحث عن ملف gradlew أولاً
-        GRADLEW_PATH=$(find . -name gradlew | head -n 1)
+        python3 -c "
+        import zipfile, os, glob
+        zip_files = glob.glob('*.zip') + glob.glob('*/*.zip')
+        if zip_files:
+            print(f'Found zip: {zip_files[0]}')
+            with zipfile.ZipFile(zip_files[0], 'r') as zip_ref:
+                zip_ref.extractall('.')
+            print('Successfully extracted all files!')
+        else:
+            print('No zip file found, assuming repository is already unzipped.')
+        "
 
-        # إذا لم يتواجد gradlew، يتم فك الضغط بوضع الهادئ -q لتسريع العملية
+    - name: Locate Project & Grant Permissions
+      run: |
+        GRADLEW_PATH=$(find . -name gradlew -type f | head -n 1)
         if [ -z "$GRADLEW_PATH" ]; then
-          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
-          if [ -n "$ZIP_FILE" ]; then
-            echo "Extracting $ZIP_FILE silently..."
-            unzip -q -o "$ZIP_FILE" -d extracted_project
-            GRADLEW_PATH=$(find extracted_project -name gradlew | head -n 1)
-          fi
-        fi
-
-        if [ -z "$GRADLEW_PATH" ]; then
-          echo "Error: gradlew file not found!"
+          echo "Error: gradlew file not found after extraction!"
           exit 1
         fi
-
         PROJECT_DIR=$(dirname "$GRADLEW_PATH")
         echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
         chmod +x "$GRADLEW_PATH"
+        echo "Project path: $PROJECT_DIR"
 
-    - name: Verify Gradle Executable
-      run: |
-        cd "${{ env.PROJECT_DIR }}"
-        ls -la gradlew
-
-    - name: Build with Gradle
+    - name: Build Debug APK
       run: |
         cd "${{ env.PROJECT_DIR }}"
         ./gradlew assembleDebug --no-daemon
@@ -60,4 +57,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
-        path: "**/build/outputs/apk/debug/app-debug.apk"
+        path: "**/build/outputs/apk/debug/*.apk"
