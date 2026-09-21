@@ -1,13 +1,4 @@
-name: Android Build - ChatMigModern V27
-
-# Drop-in replacement for .github/workflows/android.yml
-# Fixes the three reasons the current build fails:
-#   1. The project source only exists inside *.zip files and was never extracted.
-#   2. The zip contains NO gradlew / Gradle wrapper, so `find . -name gradlew`
-#      always finds nothing and the job exits with "gradlew not found".
-#   3. This workflow extracts the zip AND installs Gradle via setup-gradle
-#      (so no gradlew is required), then writes google-services.json from a
-#      secret, then builds :app:assembleDebug and uploads the APK.
+name: Android Build - ChatMigModern
 
 on:
   push:
@@ -24,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up JDK 17
@@ -33,60 +24,62 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
 
-      - name: Extract project from ZIP
+      - name: Verify project structure
         run: |
-          # The repo stores the project as zips at the root. Pick the FIXED one,
-          # fall back to the GitHub one, then to any *.zip.
-          ZIP=""
-          for f in ChatMigModern_V27_FIXED.zip ChatMigModern_V27_GitHub-1.zip; do
-            if [ -f "$f" ]; then ZIP="$f"; break; fi
-          done
-          if [ -z "$ZIP" ]; then ZIP=$(ls -1 *.zip 2>/dev/null | head -n 1); fi
-          if [ -z "$ZIP" ]; then
-            echo "::error::No project ZIP found in repository root."
-            exit 1
-          fi
-          echo "Extracting: $ZIP"
-          mkdir -p project
-          unzip -o -q "$ZIP" -d project
-          echo "::group::Extracted project (top level)"
-          find project -maxdepth 2 -type f | sort
-          echo "::endgroup::"
+          echo "📁 محتويات الجذر:"
+          ls -la
+          echo ""
+          echo "📁 محتويات مجلد app:"
+          ls -la app/ || echo "لا يوجد مجلد app"
+          echo ""
+          echo "📄 ملفات Gradle:"
+          ls -la *.gradle* 2>/dev/null || echo "لا توجد ملفات gradle"
 
-      - name: Configure Firebase (google-services.json)
+      - name: Setup Firebase (google-services.json)
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
         run: |
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
-            printf '%s' "$GOOGLE_SERVICES_JSON" > project/app/google-services.json
-            echo "Wrote app/google-services.json from secret."
+            printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
+            echo "✅ تم كتابة app/google-services.json من السر."
+          elif [ -f "app/google-services.json" ]; then
+            echo "✅ google-services.json موجود بالفعل في المستودع."
           else
-            echo "::warning::GOOGLE_SERVICES_JSON secret is not set."
-            echo "The APK will still compile (the google-services plugin only warns when the file is absent), but Firebase is not configured, so the app will crash at runtime."
-            echo "Add the secret (Repository > Settings > Secrets and variables > Actions) with the full contents of your real google-services.json for a working app."
+            echo "::warning::لم يتم تعيين السر GOOGLE_SERVICES_JSON."
+            echo "سيتم بناء APK لكن Firebase لن يعمل."
           fi
 
-      - name: Build debug APK
-        working-directory: project
-        run: gradle :app:assembleDebug --stacktrace --no-daemon
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew 2>/dev/null || echo "لا يوجد gradlew - سنستخدم gradle مباشرة"
 
-      - name: Upload debug APK
+      - name: Build Debug APK
+        run: |
+          if [ -f "./gradlew" ]; then
+            echo "استخدام gradlew..."
+            ./gradlew :app:assembleDebug --stacktrace --no-daemon
+          else
+            echo "استخدام gradle مباشرة..."
+            gradle :app:assembleDebug --stacktrace --no-daemon
+          fi
+
+      - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: ChatMigModern-V27-debug
-          path: project/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error
+          name: ChatMigModern-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
 
-      - name: Upload build info (if any)
+      - name: Upload Build Reports (on failure)
+        if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: ChatMigModern-V27-build-info
+          name: build-reports
           path: |
-            project/app/build/outputs/**/*.txt
-            project/app/build/outputs/**/*.json
+            app/build/reports/**
+            app/build/outputs/logs/**
           if-no-files-found: ignore
