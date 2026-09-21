@@ -22,42 +22,39 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Auto Extract ZIP & Find Gradle Project
+    - name: Extract ZIP & Locate Gradle Project
       run: |
-        # البحث عن ملف gradlew في أي مكان بالمسار
+        # البحث عن ملف gradlew أولاً
         GRADLEW_PATH=$(find . -name gradlew | head -n 1)
 
-        # إذا لم يجد gradlew، يفحص وجود ملف ZIP ويفك ضغطه تلقائياً
+        # إذا لم يتواجد gradlew، يتم فك الضغط بوضع الهادئ -q لتسريع العملية
         if [ -z "$GRADLEW_PATH" ]; then
-          echo "gradlew not found. Searching for zip files..."
           ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
           if [ -n "$ZIP_FILE" ]; then
-            echo "Found zip file: $ZIP_FILE. Extracting..."
-            unzip -o "$ZIP_FILE" -d extracted_project
+            echo "Extracting $ZIP_FILE silently..."
+            unzip -q -o "$ZIP_FILE" -d extracted_project
             GRADLEW_PATH=$(find extracted_project -name gradlew | head -n 1)
           fi
         fi
 
         if [ -z "$GRADLEW_PATH" ]; then
-          echo "Error: Could not find gradlew or project zip file!"
+          echo "Error: gradlew file not found!"
           exit 1
         fi
 
         PROJECT_DIR=$(dirname "$GRADLEW_PATH")
         echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
         chmod +x "$GRADLEW_PATH"
-        echo "Project directory identified at: $PROJECT_DIR"
 
-    - name: Setup Firebase Config (Optional)
+    - name: Verify Gradle Executable
       run: |
-        if [ -n "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
-          echo "${{ secrets.GOOGLE_SERVICES_JSON }}" > "${{ env.PROJECT_DIR }}/app/google-services.json"
-        fi
+        cd "${{ env.PROJECT_DIR }}"
+        ls -la gradlew
 
     - name: Build with Gradle
       run: |
         cd "${{ env.PROJECT_DIR }}"
-        ./gradlew assembleDebug
+        ./gradlew assembleDebug --no-daemon
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
