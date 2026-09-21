@@ -1,4 +1,4 @@
-name: Extract Project Files Automatically
+concurrency:name: Extract Project Files Automatically
 
 on:
   workflow_dispatch:
@@ -26,3 +26,4 @@ jobs:
         git add .
         git commit -m "Unzip project files into root directory" || echo "No changes to commit"
         git push
+ 
