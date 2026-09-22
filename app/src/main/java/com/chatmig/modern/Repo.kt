@@ -135,9 +135,13 @@ class Repo {
         val cid = privateChatId(me, peer)
         val listener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
-                val ts = s.getValue(Long::class.java) ?: 0L
-                val now = System.currentTimeMillis()
-                onChange(ts > 0 && (now - ts) < 6000)
+                try {
+                    val ts = s.getValue(Long::class.java) ?: 0L
+                    val now = System.currentTimeMillis()
+                    onChange(ts > 0 && (now - ts) < 6000)
+                } catch (_: Exception) {
+                    onChange(false)
+                }
             }
             override fun onCancelled(e: DatabaseError) {}
         }
@@ -161,6 +165,7 @@ class Repo {
         text: String,
         mediaUrl: String = "",
         assetName: String = "",
+        replyTo: ChatMessage? = null,
         done: (Boolean, String?) -> Unit
     ) {
         val me = auth.currentUser ?: return done(false, "يجب تسجيل الدخول")
@@ -184,9 +189,18 @@ class Repo {
                 )
                 if (mediaUrl.isNotBlank()) v["mediaUrl"] = mediaUrl
                 if (assetName.isNotBlank()) v["assetName"] = assetName
+                if (replyTo != null) {
+                    v["replyToId"] = replyTo.id
+                    v["replyToText"] = when (replyTo.type) {
+                        "image" -> "📷 صورة"
+                        "audio" -> "🎤 رسالة صوتية"
+                        "emoji" -> "😊 إيموجي"
+                        else -> replyTo.text
+                    }
+                    v["replyToSender"] = replyTo.senderName.ifBlank { "مستخدم" }
+                }
                 messages(cid).child(key).setValue(v)
                     .addOnCompleteListener { t ->
-                        // إيقاف مؤشر الكتابة بعد الإرسال
                         setTyping(other, false)
                         done(t.isSuccessful, t.exception?.localizedMessage)
                     }
@@ -194,16 +208,27 @@ class Repo {
         }
     }
 
-    fun sendText(other: String, text: String, done: (Boolean, String?) -> Unit) {
+    fun sendText(
+        other: String, text: String,
+        replyTo: ChatMessage? = null,
+        done: (Boolean, String?) -> Unit
+    ) {
         val c = text.trim()
         if (c.isEmpty()) return done(false, "الرسالة فارغة")
-        write(other, "text", c, done = done)
+        write(other, "text", c, replyTo = replyTo, done = done)
     }
 
-    fun sendEmoji(other: String, asset: String, done: (Boolean, String?) -> Unit) =
-        write(other, "emoji", "", assetName = asset, done = done)
+    fun sendEmoji(
+        other: String, asset: String,
+        replyTo: ChatMessage? = null,
+        done: (Boolean, String?) -> Unit
+    ) = write(other, "emoji", "", assetName = asset, replyTo = replyTo, done = done)
 
-    fun uploadMedia(other: String, uri: Uri, type: String, done: (Boolean, String?) -> Unit) {
+    fun uploadMedia(
+        other: String, uri: Uri, type: String,
+        replyTo: ChatMessage? = null,
+        done: (Boolean, String?) -> Unit
+    ) {
         val me = auth.uid ?: return done(false, "يجب تسجيل الدخول")
         val cid = privateChatId(me, other)
         val key = messages(cid).push().key ?: return done(false, "تعذر إنشاء الرسالة")
@@ -215,7 +240,7 @@ class Repo {
                 ref.putFile(uri)
                     .continueWithTask { ref.downloadUrl }
                     .addOnSuccessListener { url ->
-                        write(other, type, "", url.toString(), done = done)
+                        write(other, type, "", url.toString(), replyTo = replyTo, done = done)
                     }
                     .addOnFailureListener { done(false, it.localizedMessage) }
             }
@@ -246,7 +271,10 @@ class Repo {
                         x.child("assetName").getValue(String::class.java).orEmpty(),
                         x.child("message_time").getValue(Long::class.java) ?: 0L,
                         x.child("status").getValue(String::class.java) ?: "sent",
-                        x.child("receiverId").getValue(String::class.java).orEmpty()
+                        x.child("receiverId").getValue(String::class.java).orEmpty(),
+                        x.child("replyToId").getValue(String::class.java).orEmpty(),
+                        x.child("replyToText").getValue(String::class.java).orEmpty(),
+                        x.child("replyToSender").getValue(String::class.java).orEmpty()
                     )
                 }.sortedBy { it.timestamp }
                 onChange(list)
@@ -257,7 +285,10 @@ class Repo {
                     }
                     .forEach { it.ref.child("status").setValue("read") }
             }
-            override fun onCancelled(e: DatabaseError) = onError(e.message.orEmpty())
+            override fun onCancelled(e: DatabaseError) {
+                if (e.code != DatabaseError.PERMISSION_DENIED) return
+                onError(e.message.orEmpty())
+            }
         }
         messages(cid).addValueEventListener(l)
         return l
