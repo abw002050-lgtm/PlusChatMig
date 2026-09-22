@@ -38,7 +38,6 @@ class Repo {
         user(uid).removeEventListener(l)
     }
 
-    /** رفع صورة شخصية */
     fun uploadAvatar(uid: String, uri: Uri, done: (Boolean, String?) -> Unit) {
         if (uid.isBlank()) return done(false, "يجب تسجيل الدخول")
         val ref = storage.child("avatars/$uid.jpg")
@@ -54,7 +53,6 @@ class Repo {
             .addOnFailureListener { done(false, it.localizedMessage) }
     }
 
-    /** تحديث بيانات الملف الشخصي */
     fun updateProfile(
         name: String,
         bio: String,
@@ -84,14 +82,12 @@ class Repo {
         }
     }
 
-    /** تحديث حالة الاتصال */
     fun setOnline(uid: String, online: Boolean) {
         if (uid.isBlank()) return
         user(uid).child("online").setValue(online)
         user(uid).child("lastSeen").setValue(System.currentTimeMillis())
     }
 
-    /** إنشاء ملف شخصي كامل للمستخدم الجديد */
     fun ensureProfile(done: (Boolean) -> Unit) {
         val u = auth.currentUser ?: return done(false)
         user(u.uid).get().addOnSuccessListener { s ->
@@ -122,6 +118,41 @@ class Repo {
             .addOnCompleteListener { done(it.isSuccessful) }
     }
 
+    // ═══════════ مؤشر الكتابة ═══════════
+
+    fun setTyping(peer: String, typing: Boolean) {
+        val me = auth.uid ?: return
+        if (peer.isBlank() || peer == "private") return
+        val cid = privateChatId(me, peer)
+        val ref = chat(cid).child("typing").child(me)
+        if (typing) ref.setValue(ServerValue.TIMESTAMP)
+        else ref.removeValue()
+    }
+
+    fun observeTyping(peer: String, onChange: (Boolean) -> Unit): ValueEventListener? {
+        val me = auth.uid ?: return null
+        if (peer.isBlank() || peer == "private") return null
+        val cid = privateChatId(me, peer)
+        val listener = object : ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                val ts = s.getValue(Long::class.java) ?: 0L
+                val now = System.currentTimeMillis()
+                onChange(ts > 0 && (now - ts) < 6000)
+            }
+            override fun onCancelled(e: DatabaseError) {}
+        }
+        chat(cid).child("typing").child(peer).addValueEventListener(listener)
+        return listener
+    }
+
+    fun removeTypingListener(peer: String, l: ValueEventListener?) {
+        l ?: return
+        val me = auth.uid ?: return
+        if (peer.isBlank() || peer == "private") return
+        val cid = privateChatId(me, peer)
+        chat(cid).child("typing").child(peer).removeEventListener(l)
+    }
+
     // ═══════════ الرسائل ═══════════
 
     private fun write(
@@ -144,7 +175,6 @@ class Repo {
                     "message_id" to key,
                     "message" to text,
                     "message_name" to (me.displayName ?: me.email ?: "مستخدم"),
-                    "senderPhoto" to (user(me.uid).key ?: ""),
                     "message_type" to type,
                     "message_time" to ServerValue.TIMESTAMP,
                     "message_device_time" to System.currentTimeMillis(),
@@ -156,6 +186,8 @@ class Repo {
                 if (assetName.isNotBlank()) v["assetName"] = assetName
                 messages(cid).child(key).setValue(v)
                     .addOnCompleteListener { t ->
+                        // إيقاف مؤشر الكتابة بعد الإرسال
+                        setTyping(other, false)
                         done(t.isSuccessful, t.exception?.localizedMessage)
                     }
             }
