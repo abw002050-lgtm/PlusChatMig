@@ -2608,3 +2608,31 @@ private fun SettingRow(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
             Icon(icon, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
             Text(title, fontSize = 14.sp
+        }
+        if (value.isNotBlank()) {
+            Text(value, fontSize = 13.sp, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+private fun LoadingBox() {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
+    Column(
+        Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(icon, null, Modifier.size(64.dp), tint = Color.Gray.copy(alpha = 0.5f))
+        Spacer(Modifier.height(12.dp))
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Gray)
+        Spacer(Modifier.height(4.dp))
+        Text(subtitle, fontSize = 12.sp, color = Color.Gray.copy(alpha = 0.8f), textAlign = TextAlign.Center)
+    }
+}
