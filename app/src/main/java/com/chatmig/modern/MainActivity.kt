@@ -48,7 +48,6 @@ import androidx.navigation.compose.*
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
-import kotlinx.coroutines.delay
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -70,6 +69,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+// ═══════════ تسجيل الدخول ═══════════
 @Composable
 private fun LoginScreen() {
     var email by remember { mutableStateOf("") }
@@ -111,13 +111,16 @@ private fun LoginScreen() {
                 color = MaterialTheme.colorScheme.secondary)
             Spacer(Modifier.height(30.dp))
 
-            OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(),
+            OutlinedTextField(
+                email, { email = it }, Modifier.fillMaxWidth(),
                 label = { Text("البريد الإلكتروني") },
                 leadingIcon = { Icon(Icons.Default.Email, null) },
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email))
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+            )
             Spacer(Modifier.height(12.dp))
-            OutlinedTextField(pass, { pass = it }, Modifier.fillMaxWidth(),
+            OutlinedTextField(
+                pass, { pass = it }, Modifier.fillMaxWidth(),
                 label = { Text("كلمة المرور") },
                 leadingIcon = { Icon(Icons.Default.Lock, null) },
                 trailingIcon = {
@@ -129,7 +132,8 @@ private fun LoginScreen() {
                 singleLine = true,
                 visualTransformation = if (showPass) VisualTransformation.None
                     else PasswordVisualTransformation(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
+            )
             Spacer(Modifier.height(20.dp))
 
             Button(
@@ -194,6 +198,7 @@ private fun LoginScreen() {
     }
 }
 
+// ═══════════ HomeActivity ═══════════
 class HomeActivity : ComponentActivity() {
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
@@ -224,6 +229,7 @@ private fun HomeApp(openPeer: String?) {
     DisposableEffect(Unit) {
         onDispose { if (myUid.isNotBlank()) repo.setOnline(myUid, false) }
     }
+
     LaunchedEffect(openPeer) {
         if (!openPeer.isNullOrBlank()) nav.navigate("chat/$openPeer")
     }
@@ -279,6 +285,7 @@ private fun HomeApp(openPeer: String?) {
     }
 }
 
+// ═══════════ الصفحة الرئيسية ═══════════
 data class HomeOpt(val title: String, val subtitle: String,
                    val icon: androidx.compose.ui.graphics.vector.ImageVector,
                    val color: Color, val route: String)
@@ -369,6 +376,7 @@ private fun HomeCard(title: String, subtitle: String,
     }
 }
 
+// ═══════════ صورة المستخدم ═══════════
 @Composable
 private fun UserAvatar(user: ChatUser, size: androidx.compose.ui.unit.Dp,
                        online: Boolean = false) {
@@ -402,6 +410,7 @@ private fun UserAvatar(user: ChatUser, size: androidx.compose.ui.unit.Dp,
     }
 }
 
+// ═══════════ المستخدمون ═══════════
 @Composable
 private fun Users(nav: NavHostController) {
     var q by remember { mutableStateOf("") }
@@ -464,6 +473,7 @@ private fun UserRow(u: ChatUser, nav: NavHostController) {
     }
 }
 
+// ═══════════ الغرف ═══════════
 @Composable
 private fun Rooms(nav: NavHostController) {
     val repo = remember { RoomRepo() }
@@ -593,6 +603,7 @@ private fun CreateRoomDialog(close: () -> Unit, create: (String, String) -> Unit
     )
 }
 
+// ═══════════ شاشة تعديل الملف الشخصي ═══════════
 @Composable
 private fun EditProfileScreen(nav: NavHostController) {
     val repo = remember { Repo() }
@@ -608,14 +619,19 @@ private fun EditProfileScreen(nav: NavHostController) {
     var msg by remember { mutableStateOf("") }
     var uploadingPhoto by remember { mutableStateOf(false) }
 
-    val colorOptions = listOf("#6750A4", "#00897B", "#E91E63",
-        "#FFA000", "#546E7A", "#7B1FA2", "#1976D2", "#D32F2F")
+    val colorOptions = listOf(
+        "#6750A4", "#00897B", "#E91E63",
+        "#FFA000", "#546E7A", "#7B1FA2",
+        "#1976D2", "#D32F2F"
+    )
 
     LaunchedEffect(myUid) {
         if (myUid.isBlank()) return@LaunchedEffect
         repo.user(myUid).get().addOnSuccessListener { s ->
             s.getValue(ChatUser::class.java)?.let {
-                name = it.name; bio = it.bio; country = it.country
+                name = it.name
+                bio = it.bio
+                country = it.country
                 themeColor = it.themeColor.ifBlank { "#6750A4" }
                 photoUrl = it.photoUrl
             }
@@ -633,7 +649,9 @@ private fun EditProfileScreen(nav: NavHostController) {
                 if (ok && url != null) {
                     photoUrl = url
                     msg = "✅ تم تحديث الصورة"
-                } else msg = "فشل رفع الصورة"
+                } else {
+                    msg = "فشل رفع الصورة (قد يحتاج Firebase Storage إلى ترقية)"
+                }
             }
         }
     }
@@ -658,8 +676,10 @@ private fun EditProfileScreen(nav: NavHostController) {
             return@Column
         }
 
-        LazyColumn(Modifier.fillMaxSize().padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        LazyColumn(
+            Modifier.fillMaxSize().padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             item {
                 Column(Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally) {
@@ -671,8 +691,10 @@ private fun EditProfileScreen(nav: NavHostController) {
                                 CircularProgressIndicator()
                             }
                         } else {
-                            UserAvatar(ChatUser(uid = myUid, name = name,
-                                photoUrl = photoUrl), 120.dp)
+                            UserAvatar(
+                                ChatUser(uid = myUid, name = name, photoUrl = photoUrl),
+                                120.dp
+                            )
                         }
                         Box(
                             Modifier.size(36.dp).clip(CircleShape)
@@ -689,25 +711,35 @@ private fun EditProfileScreen(nav: NavHostController) {
                         fontSize = 12.sp, color = Color.Gray)
                 }
             }
+
             item {
-                OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(),
+                OutlinedTextField(
+                    name, { name = it }, Modifier.fillMaxWidth(),
                     label = { Text("الاسم الكامل") },
                     leadingIcon = { Icon(Icons.Default.Person, null) },
-                    singleLine = true)
+                    singleLine = true
+                )
             }
+
             item {
-                OutlinedTextField(bio, { bio = it }, Modifier.fillMaxWidth(),
+                OutlinedTextField(
+                    bio, { bio = it }, Modifier.fillMaxWidth(),
                     label = { Text("نبذة عنك") },
                     placeholder = { Text("اكتب شيئًا عن نفسك...") },
                     leadingIcon = { Icon(Icons.Default.Description, null) },
-                    minLines = 3, maxLines = 5)
+                    minLines = 3, maxLines = 5
+                )
             }
+
             item {
-                OutlinedTextField(country, { country = it }, Modifier.fillMaxWidth(),
+                OutlinedTextField(
+                    country, { country = it }, Modifier.fillMaxWidth(),
                     label = { Text("الدولة") },
                     leadingIcon = { Icon(Icons.Default.Public, null) },
-                    singleLine = true)
+                    singleLine = true
+                )
             }
+
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
@@ -719,15 +751,19 @@ private fun EditProfileScreen(nav: NavHostController) {
                                 fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         }
                         Spacer(Modifier.height(12.dp))
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
                             colorOptions.take(4).forEach { hex ->
                                 ColorCircle(hex, themeColor) { themeColor = hex }
                             }
                         }
                         Spacer(Modifier.height(8.dp))
-                        Row(Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Row(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
                             colorOptions.drop(4).forEach { hex ->
                                 ColorCircle(hex, themeColor) { themeColor = hex }
                             }
@@ -735,6 +771,7 @@ private fun EditProfileScreen(nav: NavHostController) {
                     }
                 }
             }
+
             if (msg.isNotBlank()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth(),
@@ -744,10 +781,13 @@ private fun EditProfileScreen(nav: NavHostController) {
                     }
                 }
             }
+
             item {
                 Button(
                     onClick = {
-                        if (name.trim().isBlank()) { msg = "الاسم مطلوب"; return@Button }
+                        if (name.trim().isBlank()) {
+                            msg = "الاسم مطلوب"; return@Button
+                        }
                         saving = true
                         repo.updateProfile(name.trim(), bio.trim(),
                             country.trim(), themeColor) { ok, e ->
@@ -782,17 +822,23 @@ private fun ColorCircle(hex: String, selected: String, onClick: () -> Unit) {
     val isSelected = hex == selected
     Box(
         Modifier.size(52.dp).clip(CircleShape).background(color)
-            .border(width = if (isSelected) 4.dp else 0.dp,
+            .border(
+                width = if (isSelected) 4.dp else 0.dp,
                 color = if (isSelected) MaterialTheme.colorScheme.onSurface
-                    else Color.Transparent, shape = CircleShape)
+                    else Color.Transparent,
+                shape = CircleShape
+            )
             .clickable { onClick() },
         contentAlignment = Alignment.Center
     ) {
-        if (isSelected) Icon(Icons.Default.Check, null, tint = Color.White,
-            modifier = Modifier.size(24.dp))
+        if (isSelected) {
+            Icon(Icons.Default.Check, null, tint = Color.White,
+                modifier = Modifier.size(24.dp))
+        }
     }
 }
 
+// ═══════════ الملف الشخصي ═══════════
 @Composable
 private fun Profile(nav: NavHostController, uid: String) {
     val repo = remember { RelationshipRepo() }
@@ -848,6 +894,7 @@ private fun Profile(nav: NavHostController, uid: String) {
                 }
             }
         }
+
         if (uid == me) {
             item {
                 Button({ nav.navigate("editProfile") },
@@ -859,6 +906,7 @@ private fun Profile(nav: NavHostController, uid: String) {
                 }
             }
         }
+
         if (uid != me) {
             item {
                 Row(Modifier.fillMaxWidth(),
@@ -884,6 +932,7 @@ private fun Profile(nav: NavHostController, uid: String) {
                 }
             }
         }
+
         if (error.isNotBlank()) {
             item {
                 Card(modifier = Modifier.fillMaxWidth(),
@@ -893,10 +942,12 @@ private fun Profile(nav: NavHostController, uid: String) {
                 }
             }
         }
+
         item {
             Text("التعليقات (${comments.size})",
                 fontSize = 16.sp, fontWeight = FontWeight.Bold)
         }
+
         if (uid == me) {
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
@@ -926,11 +977,13 @@ private fun Profile(nav: NavHostController, uid: String) {
                 }
             }
         }
+
         if (comments.isEmpty()) {
             item { EmptyState(Icons.Default.Comment, "لا توجد تعليقات", "كن أول من يعلّق!") }
         } else {
             items(comments) { c -> CommentCard(c) }
         }
+
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedButton({ nav.navigate("comments") }, Modifier.fillMaxWidth()) {
@@ -978,7 +1031,7 @@ private fun CommentCard(c: Comment) {
     }
 }
 
-// ═══════════ Chat مع مؤشر الكتابة ═══════════
+// ═══════════ الدردشة الخاصة (مع الرد) ═══════════
 @Composable
 private fun Chat(peer: String, nav: NavHostController) {
     val ctx = LocalContext.current
@@ -993,6 +1046,7 @@ private fun Chat(peer: String, nav: NavHostController) {
     var audioFile by remember { mutableStateOf<File?>(null) }
     var peerUser by remember { mutableStateOf(ChatUser(uid = peer)) }
     var peerTyping by remember { mutableStateOf(false) }
+    var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
 
     LaunchedEffect(peer) {
         if (peer != "private" && peer.isNotBlank()) {
@@ -1002,11 +1056,10 @@ private fun Chat(peer: String, nav: NavHostController) {
         }
     }
 
-    val pick = rememberLauncherForActivityResult(
-        ActivityResultContracts.GetContent()) { uri ->
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         uri?.let {
-            repo.uploadMedia(peer, it, "image") { ok, e ->
-                if (!ok) error = e.orEmpty()
+            repo.uploadMedia(peer, it, "image", replyTo = replyTo) { ok, e ->
+                if (!ok) error = e.orEmpty() else replyTo = null
             }
         }
     }
@@ -1029,22 +1082,26 @@ private fun Chat(peer: String, nav: NavHostController) {
         val l = repo.observeMessages(peer, { msgs = it }, { error = it })
         onDispose { repo.removeListener(peer, l) }
     }
+
     DisposableEffect(peer) {
         val l = repo.observeTyping(peer) { peerTyping = it }
         onDispose { repo.removeTypingListener(peer, l) }
     }
+
     LaunchedEffect(peerTyping) {
         if (peerTyping) {
-            delay(6500)
+            kotlinx.coroutines.delay(6500)
             peerTyping = false
         }
     }
+
     LaunchedEffect(text) {
         if (peer == "private" || text.isBlank()) return@LaunchedEffect
         repo.setTyping(peer, true)
-        delay(2500)
+        kotlinx.coroutines.delay(2500)
         repo.setTyping(peer, false)
     }
+
     LaunchedEffect(peer) {
         if (peer != "private") repo.isBlocked(peer) { blocked = it }
     }
@@ -1065,10 +1122,12 @@ private fun Chat(peer: String, nav: NavHostController) {
                 )
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(if (peer == "private") "محادثة خاصة"
+                    Text(
+                        if (peer == "private") "محادثة خاصة"
                         else peerUser.name.ifBlank { peer },
                         fontWeight = FontWeight.Bold, fontSize = 15.sp,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer)
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                     Text(
                         when {
                             peerTyping -> "✏️ يكتب الآن..."
@@ -1078,7 +1137,8 @@ private fun Chat(peer: String, nav: NavHostController) {
                         fontSize = 11.sp,
                         color = if (peerTyping) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
-                        fontWeight = if (peerTyping) FontWeight.Bold else FontWeight.Normal
+                        fontWeight = if (peerTyping) FontWeight.Bold
+                            else FontWeight.Normal
                     )
                 }
                 if (peer != "private") {
@@ -1105,16 +1165,22 @@ private fun Chat(peer: String, nav: NavHostController) {
                 item { EmptyState(Icons.Default.ChatBubbleOutline, "لا توجد رسائل",
                     "ابدأ المحادثة الآن!") }
             }
-            itemsIndexed(msgs) { _, m -> MessageBubble(m) }
+            itemsIndexed(msgs) { _, m ->
+                MessageBubble(m) { replyTo = it }
+            }
+
             if (peerTyping) {
                 item {
                     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically) {
                         UserAvatar(peerUser, 28.dp)
                         Spacer(Modifier.width(6.dp))
-                        Card(colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(16.dp)) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
                             Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 verticalAlignment = Alignment.CenterVertically) {
                                 Text("يكتب", fontSize = 13.sp, color = Color.Gray)
@@ -1131,8 +1197,41 @@ private fun Chat(peer: String, nav: NavHostController) {
 
         if (showEmoji) {
             EmojiPanel { asset ->
-                repo.sendEmoji(peer, asset) { ok, e -> if (!ok) error = e.orEmpty() }
+                repo.sendEmoji(peer, asset, replyTo = replyTo) { ok, e ->
+                    if (!ok) error = e.orEmpty() else replyTo = null
+                }
                 showEmoji = false
+            }
+        }
+
+        replyTo?.let { rm ->
+            Surface(Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant) {
+                Row(Modifier.fillMaxWidth().padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.width(4.dp).height(40.dp)
+                        .background(MaterialTheme.colorScheme.primary))
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("الرد على ${rm.senderName.ifBlank { "مستخدم" }}",
+                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            when (rm.type) {
+                                "image" -> "📷 صورة"
+                                "audio" -> "🎤 رسالة صوتية"
+                                "emoji" -> "😊 إيموجي"
+                                else -> rm.text
+                            },
+                            fontSize = 12.sp, color = Color.Gray,
+                            maxLines = 1
+                        )
+                    }
+                    IconButton({ replyTo = null }) {
+                        Icon(Icons.Default.Close, null,
+                            tint = MaterialTheme.colorScheme.error)
+                    }
+                }
             }
         }
 
@@ -1141,8 +1240,7 @@ private fun Chat(peer: String, nav: NavHostController) {
             Row(Modifier.fillMaxWidth().padding(6.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 IconButton({ pick.launch("image/*") }) {
-                    Icon(Icons.Default.Image, null,
-                        tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.primary)
                 }
                 IconButton({ showEmoji = !showEmoji }) {
                     Icon(Icons.Default.EmojiEmotions, null,
@@ -1153,16 +1251,16 @@ private fun Chat(peer: String, nav: NavHostController) {
                         try { recorder?.stop(); recorder?.release() } catch (_: Exception) {}
                         recording = false
                         audioFile?.let {
-                            repo.uploadMedia(peer, Uri.fromFile(it), "audio") { ok, e ->
-                                if (!ok) error = e.orEmpty()
+                            repo.uploadMedia(peer, Uri.fromFile(it), "audio",
+                                replyTo = replyTo) { ok, e ->
+                                if (!ok) error = e.orEmpty() else replyTo = null
                             }
                         }
                     } else {
                         if (ContextCompat.checkSelfPermission(ctx,
                                 Manifest.permission.RECORD_AUDIO) ==
                             PackageManager.PERMISSION_GRANTED) {
-                            val f = File(ctx.cacheDir,
-                                "chat_${System.currentTimeMillis()}.m4a")
+                            val f = File(ctx.cacheDir, "chat_${System.currentTimeMillis()}.m4a")
                             val r = MediaRecorder(ctx)
                             r.setAudioSource(MediaRecorder.AudioSource.MIC)
                             r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
@@ -1181,33 +1279,37 @@ private fun Chat(peer: String, nav: NavHostController) {
                     placeholder = { Text("اكتب رسالة...") }, maxLines = 4,
                     shape = RoundedCornerShape(24.dp))
                 IconButton({
-                    repo.sendText(peer, text) { ok, e ->
+                    repo.sendText(peer, text, replyTo = replyTo) { ok, e ->
                         if (ok) {
                             text = ""
+                            replyTo = null
                             if (peer != "private") repo.setTyping(peer, false)
                         } else error = e.orEmpty()
                     }
                 }) {
-                    Icon(Icons.Default.Send, null,
-                        tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Send, null, tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
     }
 }
 
+// ═══════════ فقاعة الرسالة (مع الرد) ═══════════
 @Composable
-private fun MessageBubble(m: ChatMessage) {
+private fun MessageBubble(m: ChatMessage, onReply: ((ChatMessage) -> Unit)? = null) {
     val myUid = FirebaseAuth.getInstance().uid
     val isMe = m.senderId == myUid
     val fmt = SimpleDateFormat("hh:mm a", Locale("ar"))
 
-    Row(Modifier.fillMaxWidth(),
+    Row(Modifier.fillMaxWidth().clickable { onReply?.invoke(m) },
         horizontalArrangement = if (isMe) Arrangement.End else Arrangement.Start,
         verticalAlignment = Alignment.Top) {
         if (!isMe) {
-            UserAvatar(ChatUser(uid = m.senderId, name = m.senderName,
-                photoUrl = m.senderPhoto), 32.dp)
+            UserAvatar(
+                ChatUser(uid = m.senderId, name = m.senderName,
+                    photoUrl = m.senderPhoto),
+                32.dp
+            )
             Spacer(Modifier.width(6.dp))
         }
         Card(modifier = Modifier.widthIn(max = 270.dp),
@@ -1215,9 +1317,38 @@ private fun MessageBubble(m: ChatMessage) {
                 containerColor = if (isMe) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.padding(10.dp)) {
+                if (m.replyToId.isNotBlank()) {
+                    Box(
+                        Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(
+                                if (isMe) MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
+                            )
+                    ) {
+                        Row(Modifier.padding(6.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.width(3.dp).height(28.dp)
+                                .background(if (isMe) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.primary))
+                            Spacer(Modifier.width(6.dp))
+                            Column {
+                                Text(m.replyToSender,
+                                    fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                                    color = if (isMe) MaterialTheme.colorScheme.onPrimary
+                                    else MaterialTheme.colorScheme.primary)
+                                Text(m.replyToText,
+                                    fontSize = 11.sp, maxLines = 1,
+                                    color = if (isMe)
+                                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                                    else Color.Gray)
+                            }
+                        }
+                    }
+                }
+
                 if (!isMe && m.senderName.isNotBlank()) {
-                    Text(m.senderName, fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
+                    Text(m.senderName, fontSize = 11.sp, fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary)
                 }
                 when (m.type) {
@@ -1273,6 +1404,7 @@ private fun EmojiPanel(onPick: (String) -> Unit) {
     }
 }
 
+// ═══════════ دردشة الغرفة ═══════════
 @Composable
 private fun RoomChat(roomId: String, nav: NavHostController) {
     val repo = remember { RoomRepo() }
@@ -1284,6 +1416,7 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
     var error by remember { mutableStateOf("") }
     var isOwner by remember { mutableStateOf(false) }
     var showMembers by remember { mutableStateOf(true) }
+    var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
 
     LaunchedEffect(roomId) {
         repo.room(roomId).get().addOnSuccessListener {
@@ -1309,7 +1442,11 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
                         x.child("message").getValue(String::class.java).orEmpty(),
                         "text", "", "",
                         x.child("message_time").getValue(Long::class.java) ?: 0L,
-                        x.child("status").getValue(String::class.java) ?: "sent", ""
+                        x.child("status").getValue(String::class.java) ?: "sent",
+                        "",
+                        x.child("replyToId").getValue(String::class.java).orEmpty(),
+                        x.child("replyToText").getValue(String::class.java).orEmpty(),
+                        x.child("replyToSender").getValue(String::class.java).orEmpty()
                     )
                 }.sortedBy { it.timestamp }
             }
@@ -1342,7 +1479,8 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
             Surface(Modifier.fillMaxWidth(),
                 color = Color(0xFF00897B).copy(alpha = 0.15f)) {
                 LazyColumn(
-                    Modifier.fillMaxWidth().heightIn(max = 180.dp).padding(8.dp),
+                    Modifier.fillMaxWidth().heightIn(max = 180.dp)
+                        .padding(8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     item {
@@ -1356,10 +1494,15 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
                         }
                     }
                     items(members) { m ->
-                        Row(Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            UserAvatar(ChatUser(uid = m.uid, name = m.name,
-                                photoUrl = m.photoUrl), 36.dp, online = false)
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            UserAvatar(
+                                ChatUser(uid = m.uid, name = m.name,
+                                    photoUrl = m.photoUrl),
+                                36.dp, online = false
+                            )
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1372,15 +1515,20 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
                                             modifier = Modifier.size(14.dp))
                                     }
                                 }
-                                Text(when (m.role) {
-                                    "owner" -> "المالك"
-                                    "moderator" -> "مشرف"
-                                    else -> "عضو"
-                                }, fontSize = 11.sp, color = Color.Gray)
+                                Text(
+                                    when (m.role) {
+                                        "owner" -> "المالك"
+                                        "moderator" -> "مشرف"
+                                        else -> "عضو"
+                                    },
+                                    fontSize = 11.sp, color = Color.Gray
+                                )
                             }
                             if (isOwner && m.role != "owner" && m.uid != me) {
-                                IconButton({ repo.kick(roomId, m.uid) {} },
-                                    Modifier.size(32.dp)) {
+                                IconButton(
+                                    { repo.kick(roomId, m.uid) {} },
+                                    Modifier.size(32.dp)
+                                ) {
                                     Icon(Icons.Default.RemoveCircle, null,
                                         tint = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.size(18.dp))
@@ -1407,7 +1555,30 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
                 item { EmptyState(Icons.Default.Forum, "لا توجد رسائل",
                     "كن أول من يكتب في الغرفة!") }
             }
-            items(messages) { m -> MessageBubble(m) }
+            items(messages) { m -> MessageBubble(m) { replyTo = it } }
+        }
+
+        replyTo?.let { rm ->
+            Surface(Modifier.fillMaxWidth(),
+                color = MaterialTheme.colorScheme.surfaceVariant) {
+                Row(Modifier.fillMaxWidth().padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.width(4.dp).height(40.dp)
+                        .background(Color(0xFF00897B)))
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("الرد على ${rm.senderName.ifBlank { "مستخدم" }}",
+                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00897B))
+                        Text(rm.text, fontSize = 12.sp, color = Color.Gray,
+                            maxLines = 1)
+                    }
+                    IconButton({ replyTo = null }) {
+                        Icon(Icons.Default.Close, null,
+                            tint = MaterialTheme.colorScheme.error)
+                    }
+                }
+            }
         }
 
         Surface(tonalElevation = 3.dp) {
@@ -1423,7 +1594,7 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
                         text.trim().isNotEmpty() -> {
                             val k = repo.messages(roomId).push().key
                             if (k != null) {
-                                repo.messages(roomId).child(k).setValue(mapOf(
+                                val v = hashMapOf<String, Any>(
                                     "message_id" to k,
                                     "message" to text.trim(),
                                     "message_name" to (FirebaseAuth.getInstance()
@@ -1432,11 +1603,19 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
                                     "message_time" to ServerValue.TIMESTAMP,
                                     "senderId" to uid,
                                     "status" to "sent"
-                                )).addOnFailureListener {
-                                    error = it.localizedMessage.orEmpty()
+                                )
+                                replyTo?.let {
+                                    v["replyToId"] = it.id
+                                    v["replyToText"] = it.text
+                                    v["replyToSender"] = it.senderName.ifBlank { "مستخدم" }
                                 }
+                                repo.messages(roomId).child(k).setValue(v)
+                                    .addOnFailureListener {
+                                        error = it.localizedMessage.orEmpty()
+                                    }
                             }
                             text = ""
+                            replyTo = null
                         }
                     }
                 }) { Icon(Icons.Default.Send, null, tint = Color(0xFF00897B)) }
@@ -1454,8 +1633,7 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
             if (isOwner) {
                 Button({ repo.raise(roomId) { ok -> if (!ok) error = "فشل" } },
                     Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFFA000))) {
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA000))) {
                     Icon(Icons.Default.Star, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("ترقية")
@@ -1465,6 +1643,7 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
     }
 }
 
+// ═══════════ النقاط ═══════════
 @Composable
 private fun Points(nav: NavHostController) {
     val repo = remember { PointsRepo() }
@@ -1491,14 +1670,13 @@ private fun Points(nav: NavHostController) {
                         Icon(Icons.Default.Star, null, tint = Color.White,
                             modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(8.dp))
-                        Text("رصيدك الحالي", color = Color.White,
-                            fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("رصيدك الحالي", color = Color.White, fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold)
                     }
                     Spacer(Modifier.height(12.dp))
                     Text("$points", color = Color.White, fontSize = 44.sp,
                         fontWeight = FontWeight.Bold)
-                    Text("نقطة", color = Color.White.copy(alpha = 0.9f),
-                        fontSize = 14.sp)
+                    Text("نقطة", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
                 }
             }
         }
@@ -1509,30 +1687,24 @@ private fun Points(nav: NavHostController) {
                         Icon(Icons.Default.Send, null,
                             tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
-                        Text("تحويل النقاط", fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp)
+                        Text("تحويل النقاط", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     }
                     Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(receiver, { receiver = it },
-                        Modifier.fillMaxWidth(),
+                    OutlinedTextField(receiver, { receiver = it }, Modifier.fillMaxWidth(),
                         label = { Text("معرف المستلم") },
-                        leadingIcon = { Icon(Icons.Default.Person, null) },
-                        singleLine = true)
+                        leadingIcon = { Icon(Icons.Default.Person, null) }, singleLine = true)
                     Spacer(Modifier.height(8.dp))
                     OutlinedTextField(amount, { amount = it.filter(Char::isDigit) },
                         Modifier.fillMaxWidth(),
                         label = { Text("عدد النقاط") },
-                        leadingIcon = { Icon(Icons.Default.Star, null) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Number))
+                        leadingIcon = { Icon(Icons.Default.Star, null) }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
                     Spacer(Modifier.height(12.dp))
                     Button({
                         val n = amount.toLongOrNull()
                         if (n == null || n <= 0) message = "أدخل عددًا صحيحًا"
                         else repo.sendPoints(receiver.trim(), n) { ok, e ->
-                            message = if (ok) "تم تحويل $n نقطة بنجاح ✅"
-                                else e.orEmpty()
+                            message = if (ok) "تم تحويل $n نقطة بنجاح ✅" else e.orEmpty()
                             if (ok) { receiver = ""; amount = "" }
                         }
                     }, Modifier.fillMaxWidth().height(48.dp)) {
@@ -1544,14 +1716,29 @@ private fun Points(nav: NavHostController) {
             }
         }
         item {
+            Card(modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+                Column(Modifier.padding(12.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Info, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("ملاحظات", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text("• لا يمكنك الإرسال لنفسك", fontSize = 12.sp)
+                    Text("• يجب أن تملك 3000 نقطة كحد أدنى", fontSize = 12.sp)
+                }
+            }
+        }
+        item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button({ nav.navigate("merchant") }, Modifier.weight(1f)) {
                     Icon(Icons.Default.ShoppingCart, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("المتجر")
                 }
-                OutlinedButton({ nav.navigate("transactions") },
-                    Modifier.weight(1f)) {
+                OutlinedButton({ nav.navigate("transactions") }, Modifier.weight(1f)) {
                     Icon(Icons.Default.History, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                     Text("العمليات")
@@ -1570,6 +1757,7 @@ private fun Points(nav: NavHostController) {
     }
 }
 
+// ═══════════ المتجر ═══════════
 @Composable
 private fun MerchantScreen(nav: NavHostController) {
     val repo = remember { PointsRepo() }
@@ -1610,8 +1798,7 @@ private fun MerchantScreen(nav: NavHostController) {
         }
         Spacer(Modifier.height(12.dp))
         if (items.isEmpty()) {
-            EmptyState(Icons.Default.ShoppingBag, "لا يوجد منتجات",
-                "أضف أول منتج للبيع!")
+            EmptyState(Icons.Default.ShoppingBag, "لا يوجد منتجات", "أضف أول منتج للبيع!")
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(items) { m ->
@@ -1621,15 +1808,12 @@ private fun MerchantScreen(nav: NavHostController) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.Top) {
                                 Column(Modifier.weight(1f)) {
-                                    Text(m.name, fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp)
+                                    Text(m.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                     if (m.description.isNotBlank())
-                                        Text(m.description, fontSize = 12.sp,
-                                            color = Color.Gray)
+                                        Text(m.description, fontSize = 12.sp, color = Color.Gray)
                                 }
                                 AssistChip(onClick = {}, label = {
-                                    Text(if (m.active) "متوفر" else "معطل",
-                                        fontSize = 11.sp)
+                                    Text(if (m.active) "متوفر" else "معطل", fontSize = 11.sp)
                                 }, leadingIcon = {
                                     Box(Modifier.size(8.dp).clip(CircleShape)
                                         .background(if (m.active) Color(0xFF4CAF50)
@@ -1638,8 +1822,7 @@ private fun MerchantScreen(nav: NavHostController) {
                             }
                             Spacer(Modifier.height(8.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Star, null,
-                                    tint = Color(0xFFFFA000),
+                                Icon(Icons.Default.Star, null, tint = Color(0xFFFFA000),
                                     modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(4.dp))
                                 Text("${m.price} نقطة", fontWeight = FontWeight.Bold,
@@ -1765,6 +1948,9 @@ private fun Transactions() {
                                 Text(if (t.type == "merchant_purchase")
                                     "شراء من المتجر" else "تحويل نقاط",
                                     fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                if (t.merchantName.isNotBlank())
+                                    Text("المنتج: ${t.merchantName}",
+                                        fontSize = 12.sp, color = Color.Gray)
                                 Text("الحالة: ${t.status}",
                                     fontSize = 11.sp, color = Color.Gray)
                             }
@@ -1806,18 +1992,14 @@ private fun AddMerchantDialog(close: () -> Unit,
                     label = { Text("السعر (نقاط)") },
                     leadingIcon = { Icon(Icons.Default.Star, null) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number))
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             }
         },
         confirmButton = {
             Button({
                 val p = price.toLongOrNull()
-                if (name.trim().isNotEmpty() && p != null && p > 0)
-                    create(name, desc, p)
-            }, enabled = name.trim().isNotEmpty() && price.isNotBlank()) {
-                Text("حفظ")
-            }
+                if (name.trim().isNotEmpty() && p != null && p > 0) create(name, desc, p)
+            }, enabled = name.trim().isNotEmpty() && price.isNotBlank()) { Text("حفظ") }
         },
         dismissButton = { TextButton(close) { Text("إلغاء") } }
     )
@@ -1864,14 +2046,12 @@ private fun Comments() {
                     }
                 }
             }) {
-                Icon(Icons.Default.Send, null,
-                    tint = MaterialTheme.colorScheme.primary)
+                Icon(Icons.Default.Send, null, tint = MaterialTheme.colorScheme.primary)
             }
         }
         if (msg.isNotBlank()) {
             Spacer(Modifier.height(6.dp))
-            Text(msg, fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.primary)
+            Text(msg, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
         }
     }
 }
@@ -1971,20 +2151,19 @@ private fun Settings() {
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(14.dp)) {
-                    Icon(Icons.Default.Tune, null,
-                        tint = MaterialTheme.colorScheme.secondary)
+                    Icon(Icons.Default.Tune, null, tint = MaterialTheme.colorScheme.secondary)
                     Spacer(Modifier.height(6.dp))
                     Text("عام", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Spacer(Modifier.height(10.dp))
                     SettingRow(Icons.Default.Language, "اللغة", "العربية")
                     SettingRow(Icons.Default.Info, "الإصدار", "1.0.0-v27")
+                    SettingRow(Icons.Default.Person, "الملف الشخصي", "")
                 }
             }
         }
         if (message.isNotBlank()) {
             item {
-                Text(message, color = MaterialTheme.colorScheme.primary,
-                    fontSize = 13.sp)
+                Text(message, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
             }
         }
     }
@@ -2019,8 +2198,7 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector,
 
 @Composable
 private fun LoadingBox() {
-    Box(Modifier.fillMaxWidth().padding(40.dp),
-        contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
     }
 }
