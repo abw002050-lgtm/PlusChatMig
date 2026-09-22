@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -29,13 +28,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.chatmig.modern.theme.PlusChatMigTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            PlusChatMigTheme {
+            MaterialTheme {
                 MainApp()
             }
         }
@@ -84,66 +82,9 @@ fun MainApp() {
             startDestination = "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("home") { HomeScreen(nav) }
-            composable("users") { UsersScreen(nav) }
+            composable("users") { Users(nav) }
             composable("friends") { FriendsScreen(nav) }
-            composable("rooms") { RoomsScreen(nav) }
-            composable("profile") { ProfileScreen(nav) }
-            composable("chat/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                ChatScreen(nav, userId)
-            }
-            composable("profile/{userId}") { backStackEntry ->
-                val userId = backStackEntry.arguments?.getString("userId") ?: ""
-                UserProfileScreen(nav, userId)
-            }
         }
-    }
-}
-
-@Composable
-private fun HomeScreen(nav: NavHostController) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("الرئيسية", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(16.dp))
-        Button(onClick = { nav.navigate("users") }, Modifier.fillMaxWidth()) {
-            Text("عرض جميع المستخدمين")
-        }
-    }
-}
-
-@Composable
-private fun UsersScreen(nav: NavHostController) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("جميع المستخدمين", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun RoomsScreen(nav: NavHostController) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("الغرف", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun ProfileScreen(nav: NavHostController) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("حسابي", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun ChatScreen(nav: NavHostController, userId: String) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("شاشة الدردشة مع: $userId", fontSize = 20.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun UserProfileScreen(nav: NavHostController, userId: String) {
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("الملف الشخصي للمستخدم: $userId", fontSize = 20.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -176,7 +117,11 @@ private fun UserAvatar(user: ChatUser, size: Dp, isOnline: Boolean = false) {
 }
 
 @Composable
-private fun EmptyState(icon: ImageVector, title: String, subtitle: String) {
+private fun EmptyState(
+    icon: ImageVector,
+    title: String,
+    subtitle: String
+) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -192,13 +137,15 @@ private fun EmptyState(icon: ImageVector, title: String, subtitle: String) {
 
 @Composable
 private fun LoadingBox() {
-    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(
+        Modifier.fillMaxWidth().padding(40.dp),
+        contentAlignment = Alignment.Center
+    ) {
         CircularProgressIndicator()
     }
 }
 
-// ═══════════ شاشة نظام الأصدقاء (جديد) ═══════════
-
+// ═══════════ شاشة الأصدقاء ═══════════
 @Composable
 private fun FriendsScreen(nav: NavHostController) {
     val repo = remember { FriendsRepo() }
@@ -235,26 +182,19 @@ private fun FriendsScreen(nav: NavHostController) {
                     }
                 ) {
                     IconButton({ showRequestsDialog = true }) {
-                        Icon(
-                            Icons.Default.Mail,
-                            contentDescription = "الطلبات",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
+                        Icon(Icons.Default.Mail, null,
+                            tint = MaterialTheme.colorScheme.primary)
                     }
                 }
                 IconButton({ showAddDialog = true }) {
-                    Icon(
-                        Icons.Default.PersonAdd,
-                        contentDescription = "إضافة صديق",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    Icon(Icons.Default.PersonAdd, null,
+                        tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
 
         Spacer(Modifier.height(8.dp))
 
-        // شريط الطلبات المعلقة (إن وجدت)
         if (incoming.isNotEmpty()) {
             Card(
                 Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -267,20 +207,18 @@ private fun FriendsScreen(nav: NavHostController) {
                     Modifier.fillMaxWidth().padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(Icons.Default.Mail, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Icon(Icons.Default.Mail, null,
+                        tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(10.dp))
-                    Text(
-                        "لديك ${incoming.size} طلب صداقة",
-                        Modifier.weight(1f),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Icon(Icons.Default.ArrowForward, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Text("لديك ${incoming.size} طلب صداقة",
+                        Modifier.weight(1f), fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp)
+                    Icon(Icons.Default.ArrowForward, null,
+                        tint = MaterialTheme.colorScheme.primary)
                 }
             }
         }
 
-        // قائمة الأصدقاء
         if (friends.isEmpty()) {
             EmptyState(
                 Icons.Outlined.PeopleOutline,
@@ -328,16 +266,13 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
             )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(
-                    f.friendName.ifBlank { "صديق" },
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 15.sp
-                )
+                Text(f.friendName.ifBlank { "صديق" },
+                    fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Text("اضغط للدردشة", fontSize = 12.sp, color = Color.Gray)
             }
             Box {
                 IconButton({ showMenu = true }) {
-                    Icon(Icons.Default.MoreVert, contentDescription = "خيارات", tint = Color.Gray)
+                    Icon(Icons.Default.MoreVert, null, tint = Color.Gray)
                 }
                 DropdownMenu(
                     expanded = showMenu,
@@ -346,7 +281,8 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
                     DropdownMenuItem(
                         text = { Text("دردشة") },
                         leadingIcon = {
-                            Icon(Icons.Default.ChatBubble, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Icon(Icons.Default.ChatBubble, null,
+                                tint = MaterialTheme.colorScheme.primary)
                         },
                         onClick = {
                             showMenu = false
@@ -355,7 +291,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
                     )
                     DropdownMenuItem(
                         text = { Text("عرض الملف") },
-                        leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray) },
+                        leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.Gray) },
                         onClick = {
                             showMenu = false
                             nav.navigate("profile/${f.friendId}")
@@ -364,7 +300,8 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
                     DropdownMenuItem(
                         text = { Text("إزالة الصديق") },
                         leadingIcon = {
-                            Icon(Icons.Default.PersonRemove, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Icon(Icons.Default.PersonRemove, null,
+                                tint = MaterialTheme.colorScheme.error)
                         },
                         onClick = {
                             showMenu = false
@@ -386,10 +323,7 @@ private fun AddFriendDialog(close: () -> Unit) {
     var msg by remember { mutableStateOf("") }
 
     LaunchedEffect(query) {
-        if (query.length < 2) {
-            results = emptyList()
-            return@LaunchedEffect
-        }
+        if (query.length < 2) { results = emptyList(); return@LaunchedEffect }
         loading = true
         kotlinx.coroutines.delay(400)
         repo.searchUsers(query) { list ->
@@ -400,24 +334,20 @@ private fun AddFriendDialog(close: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = close,
-        icon = {
-            Icon(Icons.Default.PersonAdd, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        },
+        icon = { Icon(Icons.Default.PersonAdd, null,
+            tint = MaterialTheme.colorScheme.primary) },
         title = { Text("إضافة صديق", fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it; msg = "" },
-                    modifier = Modifier.fillMaxWidth(),
+                    query, { query = it; msg = "" },
+                    Modifier.fillMaxWidth(),
                     placeholder = { Text("اسم المستخدم أو البريد") },
-                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
                         if (loading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(18.dp),
-                                strokeWidth = 2.dp
-                            )
+                            CircularProgressIndicator(Modifier.size(18.dp),
+                                strokeWidth = 2.dp)
                         }
                     },
                     singleLine = true,
@@ -425,11 +355,8 @@ private fun AddFriendDialog(close: () -> Unit) {
                 )
                 if (msg.isNotBlank()) {
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        msg,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary
-                    )
+                    Text(msg, fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary)
                 }
                 Spacer(Modifier.height(8.dp))
                 if (results.isEmpty() && query.length >= 2 && !loading) {
@@ -447,25 +374,20 @@ private fun AddFriendDialog(close: () -> Unit) {
                                 UserAvatar(u, 40.dp, u.online)
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(
-                                        u.name.ifBlank { "مستخدم" },
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 14.sp
-                                    )
-                                    if (u.online) {
-                                        Text("متصل الآن", fontSize = 11.sp, color = Color(0xFF4CAF50))
-                                    }
+                                    Text(u.name.ifBlank { "مستخدم" },
+                                        fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    if (u.online)
+                                        Text("متصل الآن", fontSize = 11.sp,
+                                            color = Color(0xFF4CAF50))
                                 }
                                 IconButton({
                                     repo.sendFriendRequest(u) { ok, e ->
-                                        msg = if (ok) "✅ تم إرسال الطلب" else "خطأ: ${e ?: "غير معروف"}"
+                                        msg = if (ok) "✅ تم إرسال الطلب"
+                                            else "خطأ: ${e ?: "غير معروف"}"
                                     }
                                 }) {
-                                    Icon(
-                                        Icons.Default.PersonAdd,
-                                        contentDescription = "إرسال طلب",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                                    Icon(Icons.Default.PersonAdd, null,
+                                        tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
@@ -488,9 +410,8 @@ private fun FriendRequestsDialog(
 
     AlertDialog(
         onDismissRequest = onClose,
-        icon = {
-            Icon(Icons.Default.Mail, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-        },
+        icon = { Icon(Icons.Default.Mail, null,
+            tint = MaterialTheme.colorScheme.primary) },
         title = { Text("طلبات الصداقة", fontWeight = FontWeight.Bold) },
         text = {
             Column {
@@ -511,9 +432,9 @@ private fun FriendRequestsDialog(
                 val list = if (tab == 0) incoming else outgoing
                 if (list.isEmpty()) {
                     Text(
-                        if (tab == 0) "لا توجد طلبات واردة" else "لا توجد طلبات صادرة",
-                        fontSize = 13.sp,
-                        color = Color.Gray,
+                        if (tab == 0) "لا توجد طلبات واردة"
+                        else "لا توجد طلبات صادرة",
+                        fontSize = 13.sp, color = Color.Gray,
                         modifier = Modifier.padding(20.dp)
                     )
                 } else {
@@ -536,28 +457,32 @@ private fun FriendRequestsDialog(
                                     )
                                     Spacer(Modifier.width(10.dp))
                                     Column(Modifier.weight(1f)) {
-                                        Text(
-                                            req.fromName.ifBlank { "مستخدم" },
+                                        Text(req.fromName.ifBlank { "مستخدم" },
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 14.sp
-                                        )
+                                            fontSize = 14.sp)
                                         Text(
-                                            if (tab == 0) "يريد أن يصادقك" else "بانتظار الرد",
-                                            fontSize = 11.sp,
-                                            color = Color.Gray
+                                            if (tab == 0) "يريد أن يصادقك"
+                                            else "بانتظار الرد",
+                                            fontSize = 11.sp, color = Color.Gray
                                         )
                                     }
                                     if (tab == 0) {
-                                        IconButton({ repo.acceptRequest(req) {} }) {
-                                            Icon(Icons.Default.Check, contentDescription = "قبول", tint = Color(0xFF4CAF50))
+                                        IconButton({
+                                            repo.acceptRequest(req) {}
+                                        }) {
+                                            Icon(Icons.Default.Check, null,
+                                                tint = Color(0xFF4CAF50))
                                         }
-                                        IconButton({ repo.rejectRequest(req) {} }) {
-                                            Icon(Icons.Default.Close, contentDescription = "رفض", tint = MaterialTheme.colorScheme.error)
+                                        IconButton({
+                                            repo.rejectRequest(req) {}
+                                        }) {
+                                            Icon(Icons.Default.Close, null,
+                                                tint = MaterialTheme.colorScheme.error)
                                         }
                                     } else {
-                                        TextButton({ repo.cancelOutgoing(req) {} }) {
-                                            Text("إلغاء", fontSize = 12.sp)
-                                        }
+                                        TextButton({
+                                            repo.cancelOutgoing(req) {}
+                                        }) { Text("إلغاء", fontSize = 12.sp) }
                                     }
                                 }
                             }
