@@ -157,6 +157,32 @@ class Repo {
         chat(cid).child("typing").child(peer).removeEventListener(l)
     }
 
+    // ═══════════ الحذف ═══════════
+
+    /** حذف الرسالة لي فقط */
+    fun deleteForMe(other: String, messageId: String, done: (Boolean) -> Unit = {}) {
+        val me = auth.uid ?: return done(false)
+        if (messageId.isBlank()) return done(false)
+        val cid = privateChatId(me, other)
+        val ref = messages(cid).child(messageId).child("deletedFor")
+        ref.get().addOnSuccessListener { s ->
+            val list = s.children.mapNotNull { it.getValue(String::class.java) }.toMutableList()
+            if (!list.contains(me)) list.add(me)
+            ref.setValue(list).addOnCompleteListener { done(it.isSuccessful) }
+        }.addOnFailureListener {
+            ref.setValue(listOf(me)).addOnCompleteListener { done(it.isSuccessful) }
+        }
+    }
+
+    /** حذف الرسالة للجميع */
+    fun deleteForEveryone(other: String, messageId: String, done: (Boolean) -> Unit = {}) {
+        val me = auth.uid ?: return done(false)
+        if (messageId.isBlank()) return done(false)
+        val cid = privateChatId(me, other)
+        messages(cid).child(messageId).child("deletedForEveryone")
+            .setValue(true).addOnCompleteListener { done(it.isSuccessful) }
+    }
+
     // ═══════════ الرسائل ═══════════
 
     private fun write(
@@ -260,6 +286,10 @@ class Repo {
         val l = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
                 val list = s.children.mapNotNull { x ->
+                    val delFor = x.child("deletedFor").children
+                        .mapNotNull { it.getValue(String::class.java) }
+                    // تجاهل الرسائل المحذوفة لي
+                    if (delFor.contains(me)) return@mapNotNull null
                     ChatMessage(
                         x.key ?: x.child("message_id").getValue(String::class.java).orEmpty(),
                         x.child("senderId").getValue(String::class.java).orEmpty(),
@@ -274,7 +304,9 @@ class Repo {
                         x.child("receiverId").getValue(String::class.java).orEmpty(),
                         x.child("replyToId").getValue(String::class.java).orEmpty(),
                         x.child("replyToText").getValue(String::class.java).orEmpty(),
-                        x.child("replyToSender").getValue(String::class.java).orEmpty()
+                        x.child("replyToSender").getValue(String::class.java).orEmpty(),
+                        x.child("deletedForEveryone").getValue(Boolean::class.java) ?: false,
+                        delFor
                     )
                 }.sortedBy { it.timestamp }
                 onChange(list)
