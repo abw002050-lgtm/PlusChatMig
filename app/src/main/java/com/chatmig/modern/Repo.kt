@@ -2,6 +2,7 @@ package com.chatmig.modern
 
 import android.net.Uri
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.database.*
 import com.google.firebase.storage.FirebaseStorage
 
@@ -17,9 +18,96 @@ class Repo {
     fun chats() = db.child("chat")
     fun chat(id: String) = chats().child(id)
     fun messages(id: String) = chat(id).child("messages")
-
     fun blockList(uid: String = auth.uid.orEmpty()) = db.child("block").child(uid)
     fun privateChatId(a: String, b: String) = listOf(a, b).sorted().joinToString("_")
+
+    // ═══════════ الملف الشخصي ═══════════
+
+    fun observeProfile(uid: String, onChange: (ChatUser) -> Unit): ValueEventListener {
+        val l = object : ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                s.getValue(ChatUser::class.java)?.let { onChange(it) }
+            }
+            override fun onCancelled(e: DatabaseError) {}
+        }
+        user(uid).addValueEventListener(l)
+        return l
+    }
+
+    fun removeProfileListener(uid: String, l: ValueEventListener) {
+        user(uid).removeEventListener(l)
+    }
+
+    /** رفع صورة شخصية */
+    fun uploadAvatar(uid: String, uri: Uri, done: (Boolean, String?) -> Unit) {
+        if (uid.isBlank()) return done(false, "يجب تسجيل الدخول")
+        val ref = storage.child("avatars/$uid.jpg")
+        ref.putFile(uri)
+            .continueWithTask { ref.downloadUrl }
+            .addOnSuccessListener { url ->
+                user(uid).child("photoUrl").setValue(url.toString())
+                    .addOnCompleteListener { t ->
+                        if (t.isSuccessful) done(true, url.toString())
+                        else done(false, t.exception?.localizedMessage)
+                    }
+            }
+            .addOnFailureListener { done(false, it.localizedMessage) }
+    }
+
+    /** تحديث بيانات الملف الشخصي */
+    fun updateProfile(
+        name: String,
+        bio: String,
+        country: String,
+        themeColor: String,
+        done: (Boolean, String?) -> Unit
+    ) {
+        val u = auth.currentUser ?: return done(false, "يجب تسجيل الدخول")
+        val updates = hashMapOf<String, Any>(
+            "name" to name,
+            "bio" to bio,
+            "country" to country,
+            "themeColor" to themeColor,
+            "uid" to u.uid
+        )
+        user(u.uid).updateChildren(updates).addOnCompleteListener { t ->
+            if (t.isSuccessful) {
+                val req = UserProfileChangeRequest.Builder()
+                    .setDisplayName(name)
+                    .build()
+                u.updateProfile(req).addOnCompleteListener {
+                    done(true, null)
+                }
+            } else {
+                done(false, t.exception?.localizedMessage)
+            }
+        }
+    }
+
+    /** تحديث حالة الاتصال */
+    fun setOnline(uid: String, online: Boolean) {
+        if (uid.isBlank()) return
+        user(uid).child("online").setValue(online)
+        user(uid).child("lastSeen").setValue(System.currentTimeMillis())
+    }
+
+    /** إنشاء ملف شخصي كامل للمستخدم الجديد */
+    fun ensureProfile(done: (Boolean) -> Unit) {
+        val u = auth.currentUser ?: return done(false)
+        user(u.uid).get().addOnSuccessListener { s ->
+            if (s.exists()) done(true)
+            else user(u.uid).setValue(
+                ChatUser(
+                    uid = u.uid,
+                    name = u.displayName ?: u.email?.substringBefore("@") ?: "مستخدم",
+                    online = true,
+                    lastSeen = System.currentTimeMillis()
+                )
+            ).addOnCompleteListener { done(it.isSuccessful) }
+        }.addOnFailureListener { done(false) }
+    }
+
+    // ═══════════ الحجب ═══════════
 
     fun isBlocked(peer: String, onResult: (Boolean) -> Unit) {
         val me = auth.uid ?: return onResult(true)
@@ -27,6 +115,14 @@ class Repo {
             .addOnSuccessListener { onResult(it.getValue(Boolean::class.java) == true) }
             .addOnFailureListener { onResult(false) }
     }
+
+    fun setBlocked(peer: String, blocked: Boolean, done: (Boolean) -> Unit) {
+        val me = auth.uid ?: return done(false)
+        blockList(me).child(peer).setValue(blocked)
+            .addOnCompleteListener { done(it.isSuccessful) }
+    }
+
+    // ═══════════ الرسائل ═══════════
 
     private fun write(
         other: String,
@@ -47,7 +143,8 @@ class Repo {
                 val v = hashMapOf<String, Any>(
                     "message_id" to key,
                     "message" to text,
-                    "message_name" to (me.displayName ?: me.email ?: ""),
+                    "message_name" to (me.displayName ?: me.email ?: "مستخدم"),
+                    "senderPhoto" to (user(me.uid).key ?: ""),
                     "message_type" to type,
                     "message_time" to ServerValue.TIMESTAMP,
                     "message_device_time" to System.currentTimeMillis(),
@@ -110,6 +207,7 @@ class Repo {
                         x.key ?: x.child("message_id").getValue(String::class.java).orEmpty(),
                         x.child("senderId").getValue(String::class.java).orEmpty(),
                         x.child("message_name").getValue(String::class.java).orEmpty(),
+                        x.child("senderPhoto").getValue(String::class.java).orEmpty(),
                         x.child("message").getValue(String::class.java).orEmpty(),
                         x.child("message_type").getValue(String::class.java) ?: "text",
                         x.child("mediaUrl").getValue(String::class.java).orEmpty(),
@@ -120,8 +218,6 @@ class Repo {
                     )
                 }.sortedBy { it.timestamp }
                 onChange(list)
-
-                // ✅ إصلاح: me هنا String (وليس FirebaseUser)، لذا لا نستخدم me.uid
                 s.children
                     .filter {
                         it.child("receiverId").getValue(String::class.java) == me &&
@@ -137,21 +233,5 @@ class Repo {
 
     fun removeListener(other: String, l: ValueEventListener) {
         auth.uid?.let { messages(privateChatId(it, other)).removeEventListener(l) }
-    }
-
-    fun setBlocked(peer: String, blocked: Boolean, done: (Boolean) -> Unit) {
-        val me = auth.uid ?: return done(false)
-        blockList(me).child(peer).setValue(blocked)
-            .addOnCompleteListener { done(it.isSuccessful) }
-    }
-
-    fun ensureProfile(done: (Boolean) -> Unit) {
-        val u = auth.currentUser ?: return done(false)
-        user(u.uid).get().addOnSuccessListener { s ->
-            if (s.exists()) done(true)
-            else user(u.uid).setValue(
-                ChatUser(u.uid, u.displayName ?: u.email ?: "User", online = true)
-            ).addOnCompleteListener { done(it.isSuccessful) }
-        }.addOnFailureListener { done(false) }
     }
 }
