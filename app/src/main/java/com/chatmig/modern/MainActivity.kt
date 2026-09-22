@@ -131,12 +131,12 @@ private fun LoginScreen() {
                 trailingIcon = {
                     IconButton({ showPass = !showPass }) {
                         Icon(if (showPass) Icons.Default.VisibilityOff
-                        else Icons.Default.Visibility, null)
+                            else Icons.Default.Visibility, null)
                     }
                 },
                 singleLine = true,
                 visualTransformation = if (showPass) VisualTransformation.None
-                else PasswordVisualTransformation(),
+                    else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
             Spacer(Modifier.height(20.dp))
@@ -187,7 +187,7 @@ private fun LoginScreen() {
             Spacer(Modifier.height(8.dp))
             TextButton({ reg = !reg; msg = "" }) {
                 Text(if (reg) "لديك حساب؟ سجل الدخول"
-                else "ليس لديك حساب؟ أنشئ واحدًا")
+                    else "ليس لديك حساب؟ أنشئ واحدًا")
             }
             if (msg.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))
@@ -216,7 +216,7 @@ data class Dest(val route: String, val title: String,
 
 val dests = listOf(
     Dest("home", "الرئيسية", Icons.Default.Home),
-    Dest("users", "المستخدمون", Icons.Default.People),
+    Dest("friends", "الأصدقاء", Icons.Default.People),
     Dest("rooms", "الغرف", Icons.Default.MeetingRoom),
     Dest("profile", "حسابي", Icons.Default.Person)
 )
@@ -268,7 +268,7 @@ private fun HomeApp(openPeer: String?) {
     ) { p ->
         NavHost(nav, "home", Modifier.padding(p)) {
             composable("home") { Home(nav) }
-            composable("users") { Users(nav) }
+            composable("friends") { FriendsScreen(nav) }
             composable("rooms") { Rooms(nav) }
             composable("profile") { Profile(nav, myUid) }
             composable("profile/{id}") { b ->
@@ -289,14 +289,13 @@ private fun HomeApp(openPeer: String?) {
         }
     }
 }
-
 // ═══════════ الصفحة الرئيسية ═══════════
 data class HomeOpt(val title: String, val subtitle: String,
                    val icon: androidx.compose.ui.graphics.vector.ImageVector,
                    val color: Color, val route: String)
 
 val homeOptions = listOf(
-    HomeOpt("المستخدمون", "اكتشف أصدقاء", Icons.Default.People, Color(0xFF6750A4), "users"),
+    HomeOpt("الأصدقاء", "تواصل منظّم", Icons.Default.People, Color(0xFF6750A4), "friends"),
     HomeOpt("الغرف", "دردشة جماعية", Icons.Default.MeetingRoom, Color(0xFF00897B), "rooms"),
     HomeOpt("محادثة خاصة", "دردش سرًا", Icons.Default.ChatBubble, Color(0xFFE91E63), "chat/private"),
     HomeOpt("الإعدادات", "تحكم بحسابك", Icons.Default.Settings, Color(0xFF546E7A), "settings"),
@@ -411,69 +410,6 @@ private fun UserAvatar(user: ChatUser, size: androidx.compose.ui.unit.Dp,
                 .background(Color(0xFF4CAF50))
                 .border(2.dp, Color.White, CircleShape)
                 .align(Alignment.BottomEnd))
-        }
-    }
-}
-
-// ═══════════ المستخدمون ═══════════
-@Composable
-private fun Users(nav: NavHostController) {
-    var q by remember { mutableStateOf("") }
-    var users by remember { mutableStateOf(listOf<ChatUser>()) }
-    var loading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(Unit) {
-        Repo().users().limitToFirst(200).get().addOnSuccessListener { s ->
-            users = s.children.mapNotNull { it.getValue(ChatUser::class.java) }
-            loading = false
-        }.addOnFailureListener { loading = false }
-    }
-
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("المستخدمون", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(12.dp))
-        OutlinedTextField(q, { q = it }, Modifier.fillMaxWidth(),
-            placeholder = { Text("ابحث عن مستخدم...") },
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            trailingIcon = {
-                if (q.isNotEmpty()) IconButton({ q = "" }) {
-                    Icon(Icons.Default.Clear, null)
-                }
-            },
-            singleLine = true, shape = RoundedCornerShape(28.dp))
-        Spacer(Modifier.height(12.dp))
-
-        val filtered = users.filter {
-            it.name.contains(q, true) || it.uid.contains(q, true)
-        }
-        when {
-            loading -> LoadingBox()
-            filtered.isEmpty() -> EmptyState(Icons.Default.PersonOff, "لا يوجد مستخدمون",
-                if (q.isBlank()) "لم ينضم أحد بعد" else "لا نتائج للبحث")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(filtered) { u -> UserRow(u, nav) }
-            }
-        }
-    }
-}
-
-@Composable
-private fun UserRow(u: ChatUser, nav: NavHostController) {
-    Card(modifier = Modifier.fillMaxWidth(),
-        onClick = { nav.navigate("profile/${u.uid}") }) {
-        Row(Modifier.fillMaxWidth().padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            UserAvatar(u, 48.dp, u.online)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(u.name.ifBlank { "مستخدم" },
-                    fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                Text(if (u.online) "متصل الآن" else "غير متصل", fontSize = 12.sp,
-                    color = if (u.online) Color(0xFF4CAF50) else Color.Gray)
-            }
-            IconButton({ nav.navigate("chat/${u.uid}") }) {
-                Icon(Icons.Default.ChatBubble, null, tint = MaterialTheme.colorScheme.primary)
-            }
         }
     }
 }
@@ -798,7 +734,7 @@ private fun EditProfileScreen(nav: NavHostController) {
                             country.trim(), themeColor) { ok, e ->
                             saving = false
                             msg = if (ok) "✅ تم حفظ التغييرات بنجاح"
-                            else "فشل الحفظ: ${e ?: "خطأ"}"
+                                else "فشل الحفظ: ${e ?: "خطأ"}"
                         }
                     },
                     Modifier.fillMaxWidth().height(52.dp),
@@ -823,14 +759,14 @@ private fun EditProfileScreen(nav: NavHostController) {
 @Composable
 private fun ColorCircle(hex: String, selected: String, onClick: () -> Unit) {
     val color = try { Color(android.graphics.Color.parseColor(hex)) }
-    catch (_: Exception) { Color.Gray }
+        catch (_: Exception) { Color.Gray }
     val isSelected = hex == selected
     Box(
         Modifier.size(52.dp).clip(CircleShape).background(color)
             .border(
                 width = if (isSelected) 4.dp else 0.dp,
                 color = if (isSelected) MaterialTheme.colorScheme.onSurface
-                else Color.Transparent,
+                    else Color.Transparent,
                 shape = CircleShape
             )
             .clickable { onClick() },
@@ -842,7 +778,6 @@ private fun ColorCircle(hex: String, selected: String, onClick: () -> Unit) {
         }
     }
 }
-
 // ═══════════ الملف الشخصي ═══════════
 @Composable
 private fun Profile(nav: NavHostController, uid: String) {
@@ -925,7 +860,7 @@ private fun Profile(nav: NavHostController, uid: String) {
                             containerColor = if (following) Color.Gray
                             else MaterialTheme.colorScheme.primary)) {
                         Icon(if (following) Icons.Default.PersonRemove
-                        else Icons.Default.PersonAdd, null, Modifier.size(18.dp))
+                            else Icons.Default.PersonAdd, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(if (following) "إلغاء المتابعة" else "متابعة")
                     }
@@ -1142,9 +1077,9 @@ private fun Chat(peer: String, nav: NavHostController) {
                         },
                         fontSize = 11.sp,
                         color = if (peerTyping) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                            else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         fontWeight = if (peerTyping) FontWeight.Bold
-                        else FontWeight.Normal
+                            else FontWeight.Normal
                     )
                 }
                 if (peer != "private") {
@@ -1337,7 +1272,6 @@ private fun Chat(peer: String, nav: NavHostController) {
         )
     }
 }
-
 // ═══════════ فقاعة الرسالة ═══════════
 @Composable
 private fun MessageBubble(
@@ -1370,7 +1304,6 @@ private fun MessageBubble(
                 containerColor = if (isMe) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.padding(10.dp)) {
-                // الرد
                 if (m.replyToId.isNotBlank()) {
                     Box(
                         Modifier.fillMaxWidth().padding(bottom = 6.dp)
@@ -1406,7 +1339,6 @@ private fun MessageBubble(
                         color = MaterialTheme.colorScheme.primary)
                 }
 
-                // المحتوى أو المحذوف
                 if (m.deletedForEveryone) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Block, null,
@@ -1738,7 +1670,6 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
         }
     }
 
-    // نافذة حذف رسالة الغرفة
     showDeleteDialog?.let { m ->
         val myUid = FirebaseAuth.getInstance().uid.orEmpty()
         val canDeleteForEveryone = m.senderId == myUid && !m.deletedForEveryone
@@ -1782,7 +1713,6 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
         )
     }
 }
-
 // ═══════════ النقاط ═══════════
 @Composable
 private fun Points(nav: NavHostController) {
@@ -2122,14 +2052,17 @@ private fun AddMerchantDialog(close: () -> Unit,
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(),
                     label = { Text("اسم المنتج") },
-                    leadingIcon = { Icon(Icons.Default.LocalOffer, null) }, singleLine = true)
+                    leadingIcon = { Icon(Icons.Default.LocalOffer, null) },
+                    singleLine = true)
                 OutlinedTextField(desc, { desc = it }, Modifier.fillMaxWidth(),
                     label = { Text("الوصف") },
-                    leadingIcon = { Icon(Icons.Default.Subject, null) }, singleLine = true)
+                    leadingIcon = { Icon(Icons.Default.Subject, null) },
+                    singleLine = true)
                 OutlinedTextField(price, { price = it.filter(Char::isDigit) },
                     Modifier.fillMaxWidth(),
                     label = { Text("السعر (نقاط)") },
-                    leadingIcon = { Icon(Icons.Default.Star, null) }, singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Star, null) },
+                    singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             }
         },
@@ -2313,6 +2246,356 @@ private fun Settings() {
     }
 }
 
+// ═══════════ شاشة الأصدقاء ═══════════
+@Composable
+private fun FriendsScreen(nav: NavHostController) {
+    val repo = remember { FriendsRepo() }
+    var friends by remember { mutableStateOf(listOf<Friendship>()) }
+    var incoming by remember { mutableStateOf(listOf<FriendRequest>()) }
+    var outgoing by remember { mutableStateOf(listOf<FriendRequest>()) }
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showRequestsDialog by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        val l1 = repo.observeFriends { friends = it }
+        val l2 = repo.observeIncomingRequests { incoming = it }
+        val l3 = repo.observeOutgoingRequests { outgoing = it }
+        onDispose {
+            repo.removeFriendsListener(l1)
+            repo.removeIncomingListener(l2)
+            repo.removeOutgoingListener(l3)
+        }
+    }
+
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("الأصدقاء", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Row {
+                BadgedBox(
+                    badge = {
+                        if (incoming.isNotEmpty()) {
+                            Badge { Text("${incoming.size}") }
+                        }
+                    }
+                ) {
+                    IconButton({ showRequestsDialog = true }) {
+                        Icon(Icons.Default.Mail, null,
+                            tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                IconButton({ showAddDialog = true }) {
+                    Icon(Icons.Default.PersonAdd, null,
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        if (incoming.isNotEmpty()) {
+            Card(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                ),
+                onClick = { showRequestsDialog = true }
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.Mail, null,
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Text("لديك ${incoming.size} طلب صداقة",
+                        Modifier.weight(1f), fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp)
+                    Icon(Icons.Default.ArrowForward, null,
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+
+        if (friends.isEmpty()) {
+            EmptyState(
+                Icons.Default.PeopleOutline,
+                "لا يوجد أصدقاء بعد",
+                "اضغط على ➕ لإضافة صديق"
+            )
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                items(friends) { f ->
+                    FriendCard(f, nav, repo)
+                }
+            }
+        }
+    }
+
+    if (showAddDialog) {
+        AddFriendDialog({ showAddDialog = false })
+    }
+
+    if (showRequestsDialog) {
+        FriendRequestsDialog(
+            incoming = incoming,
+            outgoing = outgoing,
+            repo = repo,
+            onClose = { showRequestsDialog = false }
+        )
+    }
+}
+
+@Composable
+private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        Modifier.fillMaxWidth(),
+        onClick = { nav.navigate("chat/${f.friendId}") }
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            UserAvatar(
+                ChatUser(uid = f.friendId, name = f.friendName, photoUrl = f.friendPhoto),
+                48.dp
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(f.friendName.ifBlank { "صديق" },
+                    fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("اضغط للدردشة", fontSize = 12.sp, color = Color.Gray)
+            }
+            Box {
+                IconButton({ showMenu = true }) {
+                    Icon(Icons.Default.MoreVert, null, tint = Color.Gray)
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("دردشة") },
+                        leadingIcon = {
+                            Icon(Icons.Default.ChatBubble, null,
+                                tint = MaterialTheme.colorScheme.primary)
+                        },
+                        onClick = {
+                            showMenu = false
+                            nav.navigate("chat/${f.friendId}")
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("عرض الملف") },
+                        leadingIcon = { Icon(Icons.Default.Person, null, tint = Color.Gray) },
+                        onClick = {
+                            showMenu = false
+                            nav.navigate("profile/${f.friendId}")
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("إزالة الصديق") },
+                        leadingIcon = {
+                            Icon(Icons.Default.PersonRemove, null,
+                                tint = MaterialTheme.colorScheme.error)
+                        },
+                        onClick = {
+                            showMenu = false
+                            repo.removeFriend(f.friendId) {}
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddFriendDialog(close: () -> Unit) {
+    val repo = remember { FriendsRepo() }
+    var query by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf(listOf<ChatUser>()) }
+    var loading by remember { mutableStateOf(false) }
+    var msg by remember { mutableStateOf("") }
+
+    LaunchedEffect(query) {
+        if (query.length < 2) { results = emptyList(); return@LaunchedEffect }
+        loading = true
+        kotlinx.coroutines.delay(400)
+        repo.searchUsers(query) { list ->
+            results = list
+            loading = false
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = close,
+        icon = { Icon(Icons.Default.PersonAdd, null,
+            tint = MaterialTheme.colorScheme.primary) },
+        title = { Text("إضافة صديق", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    query, { query = it; msg = "" },
+                    Modifier.fillMaxWidth(),
+                    placeholder = { Text("اسم المستخدم أو البريد") },
+                    leadingIcon = { Icon(Icons.Default.Search, null) },
+                    trailingIcon = {
+                        if (loading) {
+                            CircularProgressIndicator(Modifier.size(18.dp),
+                                strokeWidth = 2.dp)
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(24.dp)
+                )
+                if (msg.isNotBlank()) {
+                    Spacer(Modifier.height(8.dp))
+                    Text(msg, fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+                Spacer(Modifier.height(8.dp))
+                if (results.isEmpty() && query.length >= 2 && !loading) {
+                    Text("لا توجد نتائج", fontSize = 13.sp, color = Color.Gray)
+                } else {
+                    LazyColumn(
+                        Modifier.fillMaxWidth().heightIn(max = 300.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        items(results) { u ->
+                            Row(
+                                Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                UserAvatar(u, 40.dp, u.online)
+                                Spacer(Modifier.width(10.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(u.name.ifBlank { "مستخدم" },
+                                        fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    if (u.online)
+                                        Text("متصل الآن", fontSize = 11.sp,
+                                            color = Color(0xFF4CAF50))
+                                }
+                                IconButton({
+                                    repo.sendFriendRequest(u) { ok, e ->
+                                        msg = if (ok) "✅ تم إرسال الطلب"
+                                            else "خطأ: ${e ?: "غير معروف"}"
+                                    }
+                                }) {
+                                    Icon(Icons.Default.PersonAdd, null,
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(close) { Text("إغلاق") } }
+    )
+}
+
+@Composable
+private fun FriendRequestsDialog(
+    incoming: List<FriendRequest>,
+    outgoing: List<FriendRequest>,
+    repo: FriendsRepo,
+    onClose: () -> Unit
+) {
+    var tab by remember { mutableStateOf(0) }
+
+    AlertDialog(
+        onDismissRequest = onClose,
+        icon = { Icon(Icons.Default.Mail, null,
+            tint = MaterialTheme.colorScheme.primary) },
+        title = { Text("طلبات الصداقة", fontWeight = FontWeight.Bold) },
+        text = {
+            Column {
+                TabRow(selectedTabIndex = tab) {
+                    Tab(
+                        selected = tab == 0,
+                        onClick = { tab = 0 },
+                        text = { Text("واردة (${incoming.size})") }
+                    )
+                    Tab(
+                        selected = tab == 1,
+                        onClick = { tab = 1 },
+                        text = { Text("صادرة (${outgoing.size})") }
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+
+                val list = if (tab == 0) incoming else outgoing
+                if (list.isEmpty()) {
+                    Text(
+                        if (tab == 0) "لا توجد طلبات واردة"
+                        else "لا توجد طلبات صادرة",
+                        fontSize = 13.sp, color = Color.Gray,
+                        modifier = Modifier.padding(20.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        Modifier.fillMaxWidth().heightIn(max = 320.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        items(list) { req ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(10.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    UserAvatar(
+                                        ChatUser(
+                                            uid = if (tab == 0) req.fromId else req.toId,
+                                            name = req.fromName
+                                        ),
+                                        40.dp
+                                    )
+                                    Spacer(Modifier.width(10.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text(req.fromName.ifBlank { "مستخدم" },
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp)
+                                        Text(
+                                            if (tab == 0) "يريد أن يصادقك"
+                                            else "بانتظار الرد",
+                                            fontSize = 11.sp, color = Color.Gray
+                                        )
+                                    }
+                                    if (tab == 0) {
+                                        IconButton({
+                                            repo.acceptRequest(req) {}
+                                        }) {
+                                            Icon(Icons.Default.Check, null,
+                                                tint = Color(0xFF4CAF50))
+                                        }
+                                        IconButton({
+                                            repo.rejectRequest(req) {}
+                                        }) {
+                                            Icon(Icons.Default.Close, null,
+                                                tint = MaterialTheme.colorScheme.error)
+                                        }
+                                    } else {
+                                        TextButton({
+                                            repo.cancelOutgoing(req) {}
+                                        }) { Text("إلغاء", fontSize = 12.sp) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text("إغلاق") } }
+    )
+}
+
 // ═══════════ مكونات مساعدة UI ═══════════
 @Composable
 private fun SettingRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String) {
@@ -2324,32 +2607,4 @@ private fun SettingRow(icon: androidx.compose.ui.graphics.vector.ImageVector, ti
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(icon, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
-            Text(title, fontSize = 14.sp)
-        }
-        if (value.isNotBlank()) {
-            Text(value, fontSize = 13.sp, color = Color.Gray)
-        }
-    }
-}
-
-@Composable
-private fun LoadingBox() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
-    }
-}
-
-@Composable
-private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
-    Column(
-        Modifier.fillMaxWidth().padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(icon, null, Modifier.size(64.dp), tint = Color.Gray.copy(alpha = 0.5f))
-        Spacer(Modifier.height(12.dp))
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Gray)
-        Spacer(Modifier.height(4.dp))
-        Text(subtitle, fontSize = 12.sp, color = Color.Gray.copy(alpha = 0.8f), textAlign = TextAlign.Center)
-    }
-}
+            Text(title, fontSize = 14.sp
