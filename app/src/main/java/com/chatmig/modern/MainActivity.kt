@@ -38,7 +38,9 @@ class MainActivity : ComponentActivity() {
                 onPrimary = Color.White,
                 primaryContainer = Color(0xFFEADDFF),
                 secondary = Color(0xFF625B71)
-            )) { LoginScreen() }
+            )) { 
+                HomeApp(null) 
+            }
         }
     }
 }
@@ -54,11 +56,16 @@ val dests = listOf(
 )
 
 @Composable
+private fun Users(nav: NavHostController) {
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        Text("الرئيسية / قائمة المستخدمين", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
 private fun HomeApp(openPeer: String?) {
     val nav = rememberNavController()
     var selected by remember { mutableStateOf("home") }
-    val repo = remember { Repo() }
-    val myUid = FirebaseAuth.getInstance().uid.orEmpty()
 
     Scaffold(
         bottomBar = {
@@ -185,12 +192,12 @@ private fun FriendsScreen(nav: NavHostController) {
                         }
                     }
                 ) {
-                    IconButton({ showRequestsDialog = true }) {
+                    IconButton(onClick = { showRequestsDialog = true }) {
                         Icon(Icons.Default.Mail, null,
                             tint = MaterialTheme.colorScheme.primary)
                     }
                 }
-                IconButton({ showAddDialog = true }) {
+                IconButton(onClick = { showAddDialog = true }) {
                     Icon(Icons.Default.PersonAdd, null,
                         tint = MaterialTheme.colorScheme.primary)
                 }
@@ -201,7 +208,7 @@ private fun FriendsScreen(nav: NavHostController) {
 
         if (incoming.isNotEmpty()) {
             Card(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
@@ -239,7 +246,7 @@ private fun FriendsScreen(nav: NavHostController) {
     }
 
     if (showAddDialog) {
-        AddFriendDialog({ showAddDialog = false })
+        AddFriendDialog(onClose = { showAddDialog = false })
     }
 
     if (showRequestsDialog) {
@@ -257,7 +264,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
-        Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         onClick = { nav.navigate("chat/${f.friendId}") }
     ) {
         Row(
@@ -275,7 +282,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
                 Text("اضغط للدردشة", fontSize = 12.sp, color = Color.Gray)
             }
             Box {
-                IconButton({ showMenu = true }) {
+                IconButton(onClick = { showMenu = true }) {
                     Icon(Icons.Default.MoreVert, null, tint = Color.Gray)
                 }
                 DropdownMenu(
@@ -309,7 +316,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
                         },
                         onClick = {
                             showMenu = false
-                            repo.removeFriend(f.friendId) {}
+                            repo.removeFriend(f.friendId) { _, _ -> }
                         }
                     )
                 }
@@ -319,7 +326,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
 }
 
 @Composable
-private fun AddFriendDialog(close: () -> Unit) {
+private fun AddFriendDialog(onClose: () -> Unit) {
     val repo = remember { FriendsRepo() }
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf(listOf<ChatUser>()) }
@@ -337,15 +344,16 @@ private fun AddFriendDialog(close: () -> Unit) {
     }
 
     AlertDialog(
-        onDismissRequest = close,
+        onDismissRequest = onClose,
         icon = { Icon(Icons.Default.PersonAdd, null,
             tint = MaterialTheme.colorScheme.primary) },
         title = { Text("إضافة صديق", fontWeight = FontWeight.Bold) },
         text = {
             Column {
                 OutlinedTextField(
-                    query, { query = it; msg = "" },
-                    Modifier.fillMaxWidth(),
+                    value = query,
+                    onValueChange = { query = it; msg = "" },
+                    modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("اسم المستخدم أو البريد") },
                     leadingIcon = { Icon(Icons.Default.Search, null) },
                     trailingIcon = {
@@ -384,7 +392,7 @@ private fun AddFriendDialog(close: () -> Unit) {
                                         Text("متصل الآن", fontSize = 11.sp,
                                             color = Color(0xFF4CAF50))
                                 }
-                                IconButton({
+                                IconButton(onClick = {
                                     repo.sendFriendRequest(u) { ok, e ->
                                         msg = if (ok) "✅ تم إرسال الطلب"
                                             else "خطأ: ${e ?: "غير معروف"}"
@@ -399,7 +407,7 @@ private fun AddFriendDialog(close: () -> Unit) {
                 }
             }
         },
-        confirmButton = { TextButton(close) { Text("إغلاق") } }
+        confirmButton = { TextButton(onClick = onClose) { Text("إغلاق") } }
     )
 }
 
@@ -471,21 +479,21 @@ private fun FriendRequestsDialog(
                                         )
                                     }
                                     if (tab == 0) {
-                                        IconButton({
-                                            repo.acceptRequest(req) {}
+                                        IconButton(onClick = {
+                                            repo.acceptRequest(req) { _, _ -> }
                                         }) {
                                             Icon(Icons.Default.Check, null,
                                                 tint = Color(0xFF4CAF50))
                                         }
-                                        IconButton({
-                                            repo.rejectRequest(req) {}
+                                        IconButton(onClick = {
+                                            repo.rejectRequest(req) { _, _ -> }
                                         }) {
                                             Icon(Icons.Default.Close, null,
                                                 tint = MaterialTheme.colorScheme.error)
                                         }
                                     } else {
-                                        TextButton({
-                                            repo.cancelOutgoing(req) {}
+                                        TextButton(onClick = {
+                                            repo.cancelOutgoing(req) { _, _ -> }
                                         }) { Text("إلغاء", fontSize = 12.sp) }
                                     }
                                 }
