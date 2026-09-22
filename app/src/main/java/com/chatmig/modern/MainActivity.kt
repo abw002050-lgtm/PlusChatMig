@@ -1033,7 +1033,235 @@ private fun CommentCard(c: Comment) {
 
 // ═══════════ الدردشة الخاصة ═══════════
 @Composable
+@Composable
 private fun Chat(peer: String, nav: NavHostController) {
+    val ctx = LocalContext.current
+    val repo = remember { Repo() }
+    var text by remember { mutableStateOf("") }
+    var msgs by remember { mutableStateOf(listOf<ChatMessage>()) }
+    var error by remember { mutableStateOf("") }
+    var blocked by remember { mutableStateOf(false) }
+    var showEmoji by remember { mutableStateOf(false) }
+    var recording by remember { mutableStateOf(false) }
+    var recorder by remember { mutableStateOf<MediaRecorder?>(null) }
+    var audioFile by remember { mutableStateOf<File?>(null) }
+    var peerUser by remember { mutableStateOf(ChatUser(uid = peer)) }
+    var peerTyping by remember { mutableStateOf(false) }
+
+    LaunchedEffect(peer) {
+        if (peer != "private" && peer.isNotBlank()) {
+            repo.user(peer).get().addOnSuccessListener { s ->
+                s.getValue(ChatUser::class.java)?.let { peerUser = it }
+            }
+        }
+    }
+
+    val pick = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        uri?.let {
+            repo.uploadMedia(peer, it, "image") { ok, e ->
+                if (!ok) error = e.orEmpty()
+            }
+        }
+    }
+    val mic = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            val f = File(ctx.cacheDir, "chat_${System.currentTimeMillis()}.m4a")
+            val r = MediaRecorder(ctx)
+            r.setAudioSource(MediaRecorder.AudioSource.MIC)
+            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+            r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+            r.setOutputFile(f.absolutePath)
+            r.prepare(); r.start()
+            recorder = r; audioFile = f; recording = true
+        }
+    }
+
+    DisposableEffect(peer) {
+        val l = repo.observeMessages(peer, { msgs = it }, { error = it })
+        onDispose { repo.removeListener(peer, l) }
+    }
+
+    // ═══ مراقبة مؤشر الكتابة للطرف الآخر ═══
+    DisposableEffect(peer) {
+        val l = repo.observeTyping(peer) { peerTyping = it }
+        onDispose { repo.removeTypingListener(peer, l) }
+    }
+
+    // إخفاء المؤشر تلقائيًا بعد 6 ثوانٍ (في حال عدم وصول تحديث)
+    LaunchedEffect(peerTyping) {
+        if (peerTyping) {
+            kotlinx.coroutines.delay(6500)
+            peerTyping = false
+        }
+    }
+
+    // ═══ إرسال حالة "يكتب" عند تغيير النص ═══
+    LaunchedEffect(text) {
+        if (peer == "private" || text.isBlank()) return@LaunchedEffect
+        repo.setTyping(peer, true)
+        kotlinx.coroutines.delay(2500)
+        repo.setTyping(peer, false)
+    }
+
+    LaunchedEffect(peer) {
+        if (peer != "private") repo.isBlocked(peer) { blocked = it }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        // ═══ رأس الدردشة مع مؤشر الكتابة ═══
+        Surface(Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.primaryContainer) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                IconButton({ nav.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, null,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
+                UserAvatar(
+                    if (peer == "private") ChatUser(uid = "private", name = "P")
+                    else peerUser,
+                    40.dp, peerUser.online && !peerTyping
+                )
+                Spacer(Modifier.width(10.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (peer == "private") "محادثة خاصة"
+                        else peerUser.name.ifBlank { peer },
+                        fontWeight = FontWeight.Bold, fontSize = 15.sp,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    Text(
+                        when {
+                            peerTyping -> "✏️ يكتب الآن..."
+                            peerUser.online -> "متصل الآن"
+                            else -> "غير متصل"
+                        },
+                        fontSize = 11.sp,
+                        color = if (peerTyping) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        fontWeight = if (peerTyping) FontWeight.Bold
+                            else FontWeight.Normal
+                    )
+                }
+                if (peer != "private") {
+                    IconButton({ repo.setBlocked(peer, !blocked) { blocked = !blocked } }) {
+                        Icon(if (blocked) Icons.Default.LockOpen else Icons.Default.Block,
+                            null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                    }
+                }
+            }
+        }
+
+        if (error.isNotBlank()) {
+            Card(modifier = Modifier.fillMaxWidth().padding(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer)) {
+                Text(error, Modifier.padding(8.dp), fontSize = 12.sp)
+            }
+        }
+
+        LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            contentPadding = PaddingValues(vertical = 8.dp)) {
+            if (msgs.isEmpty()) {
+                item { EmptyState(Icons.Default.ChatBubbleOutline, "لا توجد رسائل",
+                    "ابدأ المحادثة الآن!") }
+            }
+            itemsIndexed(msgs) { _, m -> MessageBubble(m) }
+
+            // فقاعة "يكتب الآن..." في نهاية القائمة
+            if (peerTyping) {
+                item {
+                    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically) {
+                        UserAvatar(peerUser, 28.dp)
+                        Spacer(Modifier.width(6.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically) {
+                                Text("يكتب", fontSize = 13.sp, color = Color.Gray)
+                                Spacer(Modifier.width(4.dp))
+                                Text("•••", fontSize = 14.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (showEmoji) {
+            EmojiPanel { asset ->
+                repo.sendEmoji(peer, asset) { ok, e -> if (!ok) error = e.orEmpty() }
+                showEmoji = false
+            }
+        }
+
+        Surface(Modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 3.dp) {
+            Row(Modifier.fillMaxWidth().padding(6.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                IconButton({ pick.launch("image/*") }) {
+                    Icon(Icons.Default.Image, null, tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton({ showEmoji = !showEmoji }) {
+                    Icon(Icons.Default.EmojiEmotions, null,
+                        tint = MaterialTheme.colorScheme.primary)
+                }
+                IconButton({
+                    if (recording) {
+                        try { recorder?.stop(); recorder?.release() } catch (_: Exception) {}
+                        recording = false
+                        audioFile?.let {
+                            repo.uploadMedia(peer, Uri.fromFile(it), "audio") { ok, e ->
+                                if (!ok) error = e.orEmpty()
+                            }
+                        }
+                    } else {
+                        if (ContextCompat.checkSelfPermission(ctx,
+                                Manifest.permission.RECORD_AUDIO) ==
+                            PackageManager.PERMISSION_GRANTED) {
+                            val f = File(ctx.cacheDir, "chat_${System.currentTimeMillis()}.m4a")
+                            val r = MediaRecorder(ctx)
+                            r.setAudioSource(MediaRecorder.AudioSource.MIC)
+                            r.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                            r.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                            r.setOutputFile(f.absolutePath)
+                            r.prepare(); r.start()
+                            recorder = r; audioFile = f; recording = true
+                        } else mic.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                }) {
+                    Icon(if (recording) Icons.Default.Stop else Icons.Default.Mic, null,
+                        tint = if (recording) MaterialTheme.colorScheme.error
+                        else MaterialTheme.colorScheme.primary)
+                }
+                OutlinedTextField(text, { text = it }, Modifier.weight(1f),
+                    placeholder = { Text("اكتب رسالة...") }, maxLines = 4,
+                    shape = RoundedCornerShape(24.dp))
+                IconButton({
+                    repo.sendText(peer, text) { ok, e ->
+                        if (ok) {
+                            text = ""
+                            // إيقاف مؤشر الكتابة بعد الإرسال
+                            if (peer != "private") repo.setTyping(peer, false)
+                        } else error = e.orEmpty()
+                    }
+                }) {
+                    Icon(Icons.Default.Send, null, tint = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+    }
+}
     val ctx = LocalContext.current
     val repo = remember { Repo() }
     var text by remember { mutableStateOf("") }
