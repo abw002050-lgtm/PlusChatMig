@@ -32,7 +32,7 @@ data class Comment(
     val authorName: String = "",
     val authorPhoto: String = "",
     val text: String = "",
-    val timestamp: Any? = null
+    val timestamp: Long = 0L
 )
 
 data class ChatRoomModel(
