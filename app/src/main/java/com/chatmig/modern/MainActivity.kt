@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -26,52 +26,56 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.google.firebase.auth.FirebaseAuth
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+    override fun onCreate(b: Bundle?) {
+        super.onCreate(b)
         setContent {
-            MaterialTheme {
-                MainApp()
-            }
+            MaterialTheme(colorScheme = lightColorScheme(
+                primary = Color(0xFF6750A4),
+                onPrimary = Color.White,
+                primaryContainer = Color(0xFFEADDFF),
+                secondary = Color(0xFF625B71)
+            )) { LoginScreen() }
         }
     }
 }
 
-private data class Dest(val route: String, val label: String, val icon: ImageVector)
+data class Dest(val route: String, val title: String,
+                val icon: androidx.compose.ui.graphics.vector.ImageVector)
+
+val dests = listOf(
+    Dest("home", "الرئيسية", Icons.Default.Home),
+    Dest("friends", "الأصدقاء", Icons.Default.People),
+    Dest("rooms", "الغرف", Icons.Default.MeetingRoom),
+    Dest("profile", "حسابي", Icons.Default.Person)
+)
 
 @Composable
-fun MainApp() {
+private fun HomeApp(openPeer: String?) {
     val nav = rememberNavController()
-    val navBackStackEntry by nav.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route
-
-    val dests = listOf(
-        Dest("home", "الرئيسية", Icons.Default.Home),
-        Dest("friends", "الأصدقاء", Icons.Default.People),
-        Dest("rooms", "الغرف", Icons.Default.MeetingRoom),
-        Dest("profile", "حسابي", Icons.Default.Person)
-    )
+    var selected by remember { mutableStateOf("home") }
+    val repo = remember { Repo() }
+    val myUid = FirebaseAuth.getInstance().uid.orEmpty()
 
     Scaffold(
         bottomBar = {
             NavigationBar {
-                dests.forEach { dest ->
+                dests.forEach { d ->
                     NavigationBarItem(
-                        selected = currentRoute == dest.route,
+                        selected = selected == d.route,
                         onClick = {
-                            if (currentRoute != dest.route) {
-                                nav.navigate(dest.route) {
-                                    popUpTo("home") { saveState = true }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                            selected = d.route
+                            nav.navigate(d.route) {
+                                popUpTo("home") { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
                         },
-                        icon = { Icon(dest.icon, contentDescription = dest.label) },
-                        label = { Text(dest.label) }
+                        icon = { Icon(d.icon, contentDescription = d.title) },
+                        label = { Text(d.title) }
                     )
                 }
             }
@@ -79,10 +83,10 @@ fun MainApp() {
     ) { innerPadding ->
         NavHost(
             navController = nav,
-            startDestination = "home",
+            startDestination = if (!openPeer.isNullOrBlank()) "chat/$openPeer" else "home",
             modifier = Modifier.padding(innerPadding)
         ) {
-            composable("users") { Users(nav) }
+            composable("home") { Users(nav) }
             composable("friends") { FriendsScreen(nav) }
         }
     }
@@ -118,7 +122,7 @@ private fun UserAvatar(user: ChatUser, size: Dp, isOnline: Boolean = false) {
 
 @Composable
 private fun EmptyState(
-    icon: ImageVector,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
     title: String,
     subtitle: String
 ) {
