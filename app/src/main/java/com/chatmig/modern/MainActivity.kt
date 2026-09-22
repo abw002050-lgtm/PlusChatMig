@@ -128,12 +128,12 @@ private fun LoginScreen() {
                 trailingIcon = {
                     IconButton({ showPass = !showPass }) {
                         Icon(if (showPass) Icons.Default.VisibilityOff
-                            else Icons.Default.Visibility, null)
+                        else Icons.Default.Visibility, null)
                     }
                 },
                 singleLine = true,
                 visualTransformation = if (showPass) VisualTransformation.None
-                    else PasswordVisualTransformation(),
+                else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
             )
             Spacer(Modifier.height(20.dp))
@@ -184,7 +184,7 @@ private fun LoginScreen() {
             Spacer(Modifier.height(8.dp))
             TextButton({ reg = !reg; msg = "" }) {
                 Text(if (reg) "لديك حساب؟ سجل الدخول"
-                    else "ليس لديك حساب؟ أنشئ واحدًا")
+                else "ليس لديك حساب؟ أنشئ واحدًا")
             }
             if (msg.isNotBlank()) {
                 Spacer(Modifier.height(8.dp))
@@ -795,7 +795,7 @@ private fun EditProfileScreen(nav: NavHostController) {
                             country.trim(), themeColor) { ok, e ->
                             saving = false
                             msg = if (ok) "✅ تم حفظ التغييرات بنجاح"
-                                else "فشل الحفظ: ${e ?: "خطأ"}"
+                            else "فشل الحفظ: ${e ?: "خطأ"}"
                         }
                     },
                     Modifier.fillMaxWidth().height(52.dp),
@@ -820,14 +820,14 @@ private fun EditProfileScreen(nav: NavHostController) {
 @Composable
 private fun ColorCircle(hex: String, selected: String, onClick: () -> Unit) {
     val color = try { Color(android.graphics.Color.parseColor(hex)) }
-        catch (_: Exception) { Color.Gray }
+    catch (_: Exception) { Color.Gray }
     val isSelected = hex == selected
     Box(
         Modifier.size(52.dp).clip(CircleShape).background(color)
             .border(
                 width = if (isSelected) 4.dp else 0.dp,
                 color = if (isSelected) MaterialTheme.colorScheme.onSurface
-                    else Color.Transparent,
+                else Color.Transparent,
                 shape = CircleShape
             )
             .clickable { onClick() },
@@ -922,7 +922,7 @@ private fun Profile(nav: NavHostController, uid: String) {
                             containerColor = if (following) Color.Gray
                             else MaterialTheme.colorScheme.primary)) {
                         Icon(if (following) Icons.Default.PersonRemove
-                            else Icons.Default.PersonAdd, null, Modifier.size(18.dp))
+                        else Icons.Default.PersonAdd, null, Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
                         Text(if (following) "إلغاء المتابعة" else "متابعة")
                     }
@@ -1032,6 +1032,7 @@ private fun CommentCard(c: Comment) {
         }
     }
 }
+
 // ═══════════ الدردشة الخاصة ═══════════
 @Composable
 private fun Chat(peer: String, nav: NavHostController) {
@@ -1138,9 +1139,9 @@ private fun Chat(peer: String, nav: NavHostController) {
                         },
                         fontSize = 11.sp,
                         color = if (peerTyping) MaterialTheme.colorScheme.primary
-                            else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
+                        else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f),
                         fontWeight = if (peerTyping) FontWeight.Bold
-                            else FontWeight.Normal
+                        else FontWeight.Normal
                     )
                 }
                 if (peer != "private") {
@@ -1334,7 +1335,7 @@ private fun Chat(peer: String, nav: NavHostController) {
     }
 }
 
-// ═══════════ فقاعة الرسالة (مع حذف + رد) ═══════════
+// ═══════════ فقاعة الرسالة ═══════════
 @Composable
 private fun MessageBubble(
     m: ChatMessage,
@@ -1366,7 +1367,7 @@ private fun MessageBubble(
                 containerColor = if (isMe) MaterialTheme.colorScheme.primary
                 else MaterialTheme.colorScheme.surfaceVariant)) {
             Column(Modifier.padding(10.dp)) {
-                // ═══ الرد ═══
+                // الرد
                 if (m.replyToId.isNotBlank()) {
                     Box(
                         Modifier.fillMaxWidth().padding(bottom = 6.dp)
@@ -1380,7 +1381,7 @@ private fun MessageBubble(
                             verticalAlignment = Alignment.CenterVertically) {
                             Box(Modifier.width(3.dp).height(28.dp)
                                 .background(if (isMe) MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.primary))
+                                else MaterialTheme.colorScheme.primary))
                             Spacer(Modifier.width(6.dp))
                             Column {
                                 Text(m.replyToSender,
@@ -1402,7 +1403,7 @@ private fun MessageBubble(
                         color = MaterialTheme.colorScheme.primary)
                 }
 
-                // ═══ المحتوى أو المحذوف ═══
+                // المحتوى أو المحذوف
                 if (m.deletedForEveryone) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Block, null,
@@ -1440,7 +1441,7 @@ private fun MessageBubble(
                             if (m.status == "read") Icons.Default.DoneAll else Icons.Default.Done,
                             null,
                             tint = if (m.status == "read") Color(0xFF4FC3F7)
-                                else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
+                            else MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f),
                             modifier = Modifier.size(12.dp)
                         )
                     }
@@ -1483,825 +1484,6 @@ private fun EmojiPanel(onPick: (String) -> Unit) {
     }
 }
 
-// ═══════════ دردشة الغرفة ═══════════
-@Composable
-private fun RoomChat(roomId: String, nav: NavHostController) {
-    val repo = remember { RoomRepo() }
-    val me = FirebaseAuth.getInstance().uid.orEmpty()
-    var room by remember { mutableStateOf(ChatRoomModel(roomId = roomId)) }
-    var members by remember { mutableStateOf(listOf<RoomMember>()) }
-    var messages by remember { mutableStateOf(listOf<ChatMessage>()) }
-    var text by remember { mutableStateOf("") }
-    var error by remember { mutableStateOf("") }
-    var isOwner by remember { mutableStateOf(false) }
-    var showMembers by remember { mutableStateOf(true) }
-    var replyTo by remember { mutableStateOf<ChatMessage?>(null) }
-    var showDeleteDialog by remember { mutableStateOf<ChatMessage?>(null) }
-
-    LaunchedEffect(roomId) {
-        repo.room(roomId).get().addOnSuccessListener {
-            room = it.getValue(ChatRoomModel::class.java) ?: room
-        }
-        repo.members(roomId).addValueEventListener(object : ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                members = s.children.mapNotNull { it.getValue(RoomMember::class.java) }
-                isOwner = members.any { it.uid == me && it.role == "owner" }
-            }
-            override fun onCancelled(e: DatabaseError) {}
-        })
-    }
-    DisposableEffect(roomId) {
-        val l = object : ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                messages = s.children.mapNotNull { x ->
-                    val delFor = x.child("deletedFor").children
-                        .mapNotNull { it.getValue(String::class.java) }
-                    if (delFor.contains(me)) return@mapNotNull null
-                    ChatMessage(
-                        x.key.orEmpty(),
-                        x.child("senderId").getValue(String::class.java).orEmpty(),
-                        x.child("message_name").getValue(String::class.java).orEmpty(),
-                        x.child("senderPhoto").getValue(String::class.java).orEmpty(),
-                        x.child("message").getValue(String::class.java).orEmpty(),
-                        "text", "", "",
-                        x.child("message_time").getValue(Long::class.java) ?: 0L,
-                        x.child("status").getValue(String::class.java) ?: "sent",
-                        "",
-                        x.child("replyToId").getValue(String::class.java).orEmpty(),
-                        x.child("replyToText").getValue(String::class.java).orEmpty(),
-                        x.child("replyToSender").getValue(String::class.java).orEmpty(),
-                        x.child("deletedForEveryone").getValue(Boolean::class.java) ?: false,
-                        delFor
-                    )
-                }.sortedBy { it.timestamp }
-            }
-            override fun onCancelled(e: DatabaseError) { error = e.message.orEmpty() }
-        }
-        repo.messages(roomId).addValueEventListener(l)
-        onDispose { repo.messages(roomId).removeEventListener(l) }
-    }
-
-    Column(Modifier.fillMaxSize()) {
-        Surface(Modifier.fillMaxWidth(), color = Color(0xFF00897B)) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                IconButton({ nav.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, null, tint = Color.White)
-                }
-                Column(Modifier.weight(1f)) {
-                    Text(room.name.ifBlank { "غرفة" }, fontWeight = FontWeight.Bold,
-                        color = Color.White, fontSize = 16.sp)
-                    Text("${members.size} أعضاء • ${room.topic.ifBlank { "بدون موضوع" }}",
-                        color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
-                }
-                IconButton({ showMembers = !showMembers }) {
-                    Icon(Icons.Default.People, null, tint = Color.White)
-                }
-            }
-        }
-
-        if (showMembers && members.isNotEmpty()) {
-            Surface(Modifier.fillMaxWidth(),
-                color = Color(0xFF00897B).copy(alpha = 0.15f)) {
-                LazyColumn(
-                    Modifier.fillMaxWidth().heightIn(max = 180.dp)
-                        .padding(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    item {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.People, null,
-                                tint = Color(0xFF00897B), modifier = Modifier.size(18.dp))
-                            Spacer(Modifier.width(6.dp))
-                            Text("الأعضاء (${members.size})",
-                                fontWeight = FontWeight.Bold, fontSize = 13.sp,
-                                color = Color(0xFF00897B))
-                        }
-                    }
-                    items(members) { m ->
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            UserAvatar(
-                                ChatUser(uid = m.uid, name = m.name,
-                                    photoUrl = m.photoUrl),
-                                36.dp, online = false
-                            )
-                            Spacer(Modifier.width(10.dp))
-                            Column(Modifier.weight(1f)) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(m.name.ifBlank { "مستخدم" },
-                                        fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    if (m.role == "owner") {
-                                        Spacer(Modifier.width(4.dp))
-                                        Icon(Icons.Default.Star, null,
-                                            tint = Color(0xFFFFA000),
-                                            modifier = Modifier.size(14.dp))
-                                    }
-                                }
-                                Text(
-                                    when (m.role) {
-                                        "owner" -> "المالك"
-                                        "moderator" -> "مشرف"
-                                        else -> "عضو"
-                                    },
-                                    fontSize = 11.sp, color = Color.Gray
-                                )
-                            }
-                            if (isOwner && m.role != "owner" && m.uid != me) {
-                                IconButton(
-                                    { repo.kick(roomId, m.uid) {} },
-                                    Modifier.size(32.dp)
-                                ) {
-                                    Icon(Icons.Default.RemoveCircle, null,
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(18.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (error.isNotBlank()) {
-            Card(modifier = Modifier.fillMaxWidth().padding(8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                Text(error, Modifier.padding(8.dp), fontSize = 12.sp)
-            }
-        }
-
-        LazyColumn(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)) {
-            if (messages.isEmpty()) {
-                item { EmptyState(Icons.Default.Forum, "لا توجد رسائل",
-                    "كن أول من يكتب في الغرفة!") }
-            }
-            items(messages) { m ->
-                MessageBubble(
-                    m = m,
-                    onReply = { replyTo = it },
-                    onLongPress = { showDeleteDialog = it }
-                )
-            }
-        }
-
-        replyTo?.let { rm ->
-            Surface(Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceVariant) {
-                Row(Modifier.fillMaxWidth().padding(10.dp),
-                    verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.width(4.dp).height(40.dp)
-                        .background(Color(0xFF00897B)))
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("الرد على ${rm.senderName.ifBlank { "مستخدم" }}",
-                            fontSize = 11.sp, fontWeight = FontWeight.Bold,
-                            color = Color(0xFF00897B))
-                        Text(rm.text, fontSize = 12.sp, color = Color.Gray,
-                            maxLines = 1)
-                    }
-                    IconButton({ replyTo = null }) {
-                        Icon(Icons.Default.Close, null,
-                            tint = MaterialTheme.colorScheme.error)
-                    }
-                }
-            }
-        }
-
-        Surface(tonalElevation = 3.dp) {
-            Row(Modifier.fillMaxWidth().padding(6.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(text, { text = it }, Modifier.weight(1f),
-                    placeholder = { Text("اكتب رسالة...") }, maxLines = 4,
-                    shape = RoundedCornerShape(24.dp))
-                IconButton({
-                    val uid = FirebaseAuth.getInstance().uid
-                    when {
-                        uid == null -> error = "يجب تسجيل الدخول"
-                        text.trim().isNotEmpty() -> {
-                            val k = repo.messages(roomId).push().key
-                            if (k != null) {
-                                val v = hashMapOf<String, Any>(
-                                    "message_id" to k,
-                                    "message" to text.trim(),
-                                    "message_name" to (FirebaseAuth.getInstance()
-                                        .currentUser?.displayName ?: "مستخدم"),
-                                    "message_type" to "text",
-                                    "message_time" to ServerValue.TIMESTAMP,
-                                    "senderId" to uid,
-                                    "status" to "sent"
-                                )
-                                replyTo?.let {
-                                    v["replyToId"] = it.id
-                                    v["replyToText"] = it.text
-                                    v["replyToSender"] = it.senderName.ifBlank { "مستخدم" }
-                                }
-                                repo.messages(roomId).child(k).setValue(v)
-                                    .addOnFailureListener {
-                                        error = it.localizedMessage.orEmpty()
-                                    }
-                            }
-                            text = ""
-                            replyTo = null
-                        }
-                    }
-                }) { Icon(Icons.Default.Send, null, tint = Color(0xFF00897B)) }
-            }
-        }
-
-        Row(Modifier.fillMaxWidth().padding(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton({ repo.leave(roomId) { nav.popBackStack() } },
-                Modifier.weight(1f)) {
-                Icon(Icons.Default.ExitToApp, null, Modifier.size(16.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("مغادرة")
-            }
-            if (isOwner) {
-                Button({ repo.raise(roomId) { ok -> if (!ok) error = "فشل" } },
-                    Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA000))) {
-                    Icon(Icons.Default.Star, null, Modifier.size(16.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("ترقية")
-                }
-            }
-        }
-    }
-
-    // نافذة الحذف في الغرفة
-    showDeleteDialog?.let { m ->
-        val myUid = FirebaseAuth.getInstance().uid.orEmpty()
-        val canDeleteForEveryone = m.senderId == myUid && !m.deletedForEveryone
-        AlertDialog(
-            onDismissRequest = { showDeleteDialog = null },
-            icon = { Icon(Icons.Default.Delete, null,
-                tint = MaterialTheme.colorScheme.error) },
-            title = { Text("حذف الرسالة", fontWeight = FontWeight.Bold) },
-            text = { Text("كيف تريد حذف هذه الرسالة؟") },
-            confirmButton = {
-                if (canDeleteForEveryone) {
-                    Button(
-                        onClick = {
-                            repo.messages(roomId).child(m.id)
-                                .child("deletedForEveryone")
-                                .setValue(true)
-                            showDeleteDialog = null
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error)
-                    ) { Text("للجميع") }
-                }
-            },
-            dismissButton = {
-                Row {
-                    TextButton(onClick = {
-                        val ref = repo.messages(roomId).child(m.id)
-                            .child("deletedFor")
-                        ref.get().addOnSuccessListener { s ->
-                            val list = s.children.mapNotNull {
-                                it.getValue(String::class.java)
-                            }.toMutableList()
-                            if (!list.contains(myUid)) list.add(myUid)
-                            ref.setValue(list)
-                        }.addOnFailureListener {
-                            ref.setValue(listOf(myUid))
-                        }
-                        showDeleteDialog = null
-                    }) { Text("لي فقط") }
-                    TextButton(onClick = { showDeleteDialog = null }) { Text("إلغاء") }
-                }
-            }
-        )
-    }
-}
-
-// ═══════════ النقاط ═══════════
-@Composable
-private fun Points(nav: NavHostController) {
-    val repo = remember { PointsRepo() }
-    val me = FirebaseAuth.getInstance().uid.orEmpty()
-    var points by remember { mutableStateOf(0L) }
-    var message by remember { mutableStateOf("") }
-    var receiver by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-
-    DisposableEffect(me) {
-        if (me.isBlank()) onDispose {}
-        else {
-            val l = repo.observeBalance({ points = it }, { message = it })
-            onDispose { repo.removeBalanceListener(l) }
-        }
-    }
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFA000))) {
-                Column(Modifier.padding(24.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, null, tint = Color.White,
-                            modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("رصيدك الحالي", color = Color.White, fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    Text("$points", color = Color.White, fontSize = 44.sp,
-                        fontWeight = FontWeight.Bold)
-                    Text("نقطة", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
-                }
-            }
-        }
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Send, null,
-                            tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(8.dp))
-                        Text("تحويل النقاط", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    Spacer(Modifier.height(12.dp))
-                    OutlinedTextField(receiver, { receiver = it }, Modifier.fillMaxWidth(),
-                        label = { Text("معرف المستلم") },
-                        leadingIcon = { Icon(Icons.Default.Person, null) }, singleLine = true)
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(amount, { amount = it.filter(Char::isDigit) },
-                        Modifier.fillMaxWidth(),
-                        label = { Text("عدد النقاط") },
-                        leadingIcon = { Icon(Icons.Default.Star, null) }, singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                    Spacer(Modifier.height(12.dp))
-                    Button({
-                        val n = amount.toLongOrNull()
-                        if (n == null || n <= 0) message = "أدخل عددًا صحيحًا"
-                        else repo.sendPoints(receiver.trim(), n) { ok, e ->
-                            message = if (ok) "تم تحويل $n نقطة بنجاح ✅" else e.orEmpty()
-                            if (ok) { receiver = ""; amount = "" }
-                        }
-                    }, Modifier.fillMaxWidth().height(48.dp)) {
-                        Icon(Icons.Default.Send, null, Modifier.size(18.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("إرسال النقاط")
-                    }
-                }
-            }
-        }
-        item {
-            Card(modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
-                Column(Modifier.padding(12.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Info, null, Modifier.size(16.dp))
-                        Spacer(Modifier.width(6.dp))
-                        Text("ملاحظات", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Text("• لا يمكنك الإرسال لنفسك", fontSize = 12.sp)
-                    Text("• يجب أن تملك 3000 نقطة كحد أدنى", fontSize = 12.sp)
-                }
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button({ nav.navigate("merchant") }, Modifier.weight(1f)) {
-                    Icon(Icons.Default.ShoppingCart, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("المتجر")
-                }
-                OutlinedButton({ nav.navigate("transactions") }, Modifier.weight(1f)) {
-                    Icon(Icons.Default.History, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(4.dp))
-                    Text("العمليات")
-                }
-            }
-        }
-        if (message.isNotBlank()) {
-            item {
-                Card(modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer)) {
-                    Text(message, Modifier.padding(12.dp), fontSize = 13.sp)
-                }
-            }
-        }
-    }
-}
-
-// ═══════════ المتجر ═══════════
-@Composable
-private fun MerchantScreen(nav: NavHostController) {
-    val repo = remember { PointsRepo() }
-    val me = FirebaseAuth.getInstance().uid.orEmpty()
-    var items by remember { mutableStateOf(listOf<Merchant>()) }
-    var showAdd by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<Merchant?>(null) }
-    var error by remember { mutableStateOf("") }
-
-    DisposableEffect(Unit) {
-        val l = object : ValueEventListener {
-            override fun onDataChange(s: DataSnapshot) {
-                items = s.children.mapNotNull { it.getValue(Merchant::class.java) }
-            }
-            override fun onCancelled(e: DatabaseError) { error = e.message.orEmpty() }
-        }
-        repo.merchantList().addValueEventListener(l)
-        onDispose { repo.merchantRef().removeEventListener(l) }
-    }
-
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically) {
-            Text("المتجر", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-            Button({ showAdd = true }, shape = RoundedCornerShape(24.dp)) {
-                Icon(Icons.Default.Add, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("إضافة")
-            }
-        }
-        if (error.isNotBlank()) {
-            Spacer(Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                Text(error, Modifier.padding(10.dp), fontSize = 13.sp)
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        if (items.isEmpty()) {
-            EmptyState(Icons.Default.ShoppingBag, "لا يوجد منتجات", "أضف أول منتج للبيع!")
-        } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                items(items) { m ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Column(Modifier.padding(14.dp)) {
-                            Row(Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.Top) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(m.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                                    if (m.description.isNotBlank())
-                                        Text(m.description, fontSize = 12.sp, color = Color.Gray)
-                                }
-                                AssistChip(onClick = {}, label = {
-                                    Text(if (m.active) "متوفر" else "معطل", fontSize = 11.sp)
-                                }, leadingIcon = {
-                                    Box(Modifier.size(8.dp).clip(CircleShape)
-                                        .background(if (m.active) Color(0xFF4CAF50)
-                                        else Color.Gray))
-                                })
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(Icons.Default.Star, null, tint = Color(0xFFFFA000),
-                                    modifier = Modifier.size(18.dp))
-                                Spacer(Modifier.width(4.dp))
-                                Text("${m.price} نقطة", fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFFA000))
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                if (m.ownerId != me && m.active) {
-                                    Button({ selected = m }, Modifier.weight(1f)) {
-                                        Icon(Icons.Default.ShoppingCart, null,
-                                            Modifier.size(16.dp))
-                                        Spacer(Modifier.width(4.dp))
-                                        Text("شراء")
-                                    }
-                                }
-                                if (m.ownerId == me) {
-                                    OutlinedButton({
-                                        repo.setMerchantActive(m.merchantId, !m.active) { ok, e ->
-                                            if (!ok) error = e.orEmpty()
-                                        }
-                                    }, Modifier.weight(1f)) {
-                                        Text(if (m.active) "تعطيل" else "تفعيل")
-                                    }
-                                    OutlinedButton({
-                                        repo.deleteMerchant(m.merchantId) { ok, e ->
-                                            if (!ok) error = e.orEmpty()
-                                        }
-                                    }, Modifier.weight(1f),
-                                        colors = ButtonDefaults.outlinedButtonColors(
-                                            contentColor = MaterialTheme.colorScheme.error)) {
-                                        Text("حذف")
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton({ nav.navigate("transactions") }, Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.History, null, Modifier.size(18.dp))
-            Spacer(Modifier.width(6.dp))
-            Text("سجل العمليات")
-        }
-    }
-    if (showAdd) {
-        AddMerchantDialog({ showAdd = false }) { n, d, p ->
-            repo.addMerchant(n, d, p) { ok, e ->
-                showAdd = false
-                if (!ok) error = e.orEmpty()
-            }
-        }
-    }
-    selected?.let { m ->
-        AlertDialog(onDismissRequest = { selected = null },
-            icon = { Icon(Icons.Default.ShoppingCart, null,
-                tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("تأكيد الشراء") },
-            text = { Text("هل تريد شراء \"${m.name}\" بـ ${m.price} نقطة؟") },
-            confirmButton = {
-                Button({
-                    repo.purchaseMerchant(m) { ok, e ->
-                        error = if (ok) "تم الشراء بنجاح ✅" else e.orEmpty()
-                        if (ok) selected = null
-                    }
-                }) { Text("تأكيد") }
-            },
-            dismissButton = { TextButton({ selected = null }) { Text("إلغاء") } }
-        )
-    }
-}
-
-@Composable
-private fun Transactions() {
-    val repo = remember { PointsRepo() }
-    val me = FirebaseAuth.getInstance().uid.orEmpty()
-    var list by remember { mutableStateOf(listOf<PointTransaction>()) }
-    var error by remember { mutableStateOf("") }
-    var loading by remember { mutableStateOf(true) }
-
-    LaunchedEffect(me) {
-        if (me.isNotBlank()) {
-            repo.transactions().get().addOnSuccessListener { s ->
-                list = s.children.mapNotNull { it.getValue(PointTransaction::class.java) }
-                    .sortedByDescending { it.createdAt }
-                loading = false
-            }.addOnFailureListener {
-                error = it.localizedMessage.orEmpty(); loading = false
-            }
-        }
-    }
-
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("عمليات النقاط", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(12.dp))
-        when {
-            loading -> LoadingBox()
-            error.isNotBlank() -> Card(modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.errorContainer)) {
-                Text(error, Modifier.padding(12.dp))
-            }
-            list.isEmpty() -> EmptyState(Icons.Default.Receipt, "لا توجد عمليات",
-                "لم تقم بأي عملية بعد")
-            else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(list) { t ->
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        Row(Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.size(40.dp).clip(CircleShape).background(
-                                if (t.type == "merchant_purchase")
-                                    Color(0xFFFFA000).copy(alpha = 0.2f)
-                                else Color(0xFF6750A4).copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center) {
-                                Icon(if (t.type == "merchant_purchase")
-                                    Icons.Default.ShoppingCart else Icons.Default.Send,
-                                    null, tint = if (t.type == "merchant_purchase")
-                                        Color(0xFFFFA000) else Color(0xFF6750A4))
-                            }
-                            Spacer(Modifier.width(12.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(if (t.type == "merchant_purchase")
-                                    "شراء من المتجر" else "تحويل نقاط",
-                                    fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                if (t.merchantName.isNotBlank())
-                                    Text("المنتج: ${t.merchantName}",
-                                        fontSize = 12.sp, color = Color.Gray)
-                                Text("الحالة: ${t.status}",
-                                    fontSize = 11.sp, color = Color.Gray)
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("${t.amount}", fontWeight = FontWeight.Bold,
-                                    color = Color(0xFFFFA000), fontSize = 18.sp)
-                                Text("نقطة", fontSize = 10.sp, color = Color.Gray)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun AddMerchantDialog(close: () -> Unit,
-                              create: (String, String, Long) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var desc by remember { mutableStateOf("") }
-    var price by remember { mutableStateOf("") }
-    AlertDialog(onDismissRequest = close,
-        icon = { Icon(Icons.Default.AddShoppingCart, null,
-            tint = MaterialTheme.colorScheme.primary) },
-        title = { Text("إضافة منتج", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(),
-                    label = { Text("اسم المنتج") },
-                    leadingIcon = { Icon(Icons.Default.LocalOffer, null) }, singleLine = true)
-                OutlinedTextField(desc, { desc = it }, Modifier.fillMaxWidth(),
-                    label = { Text("الوصف") },
-                    leadingIcon = { Icon(Icons.Default.Subject, null) }, singleLine = true)
-                OutlinedTextField(price, { price = it.filter(Char::isDigit) },
-                    Modifier.fillMaxWidth(),
-                    label = { Text("السعر (نقاط)") },
-                    leadingIcon = { Icon(Icons.Default.Star, null) }, singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-            }
-        },
-        confirmButton = {
-            Button({
-                val p = price.toLongOrNull()
-                if (name.trim().isNotEmpty() && p != null && p > 0) create(name, desc, p)
-            }, enabled = name.trim().isNotEmpty() && price.isNotBlank()) { Text("حفظ") }
-        },
-        dismissButton = { TextButton(close) { Text("إلغاء") } }
-    )
-}
-
-// ═══════════ التعليقات ═══════════
-@Composable
-private fun Comments() {
-    val repo = remember { RelationshipRepo() }
-    val uid = FirebaseAuth.getInstance().uid.orEmpty()
-    var text by remember { mutableStateOf("") }
-    var list by remember { mutableStateOf(listOf<Comment>()) }
-    var msg by remember { mutableStateOf("") }
-
-    LaunchedEffect(uid) {
-        if (uid.isNotBlank()) {
-            repo.comments(uid).limitToLast(100).get().addOnSuccessListener { s ->
-                list = s.children.mapNotNull { it.getValue(Comment::class.java) }
-                    .sortedByDescending { it.timestamp }
-            }
-        }
-    }
-    Column(Modifier.fillMaxSize().padding(16.dp)) {
-        Text("كل التعليقات", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(12.dp))
-        if (list.isEmpty()) {
-            EmptyState(Icons.Default.Comment, "لا توجد تعليقات", "شارك رأيك الآن!")
-        } else {
-            LazyColumn(Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(list) { c -> CommentCard(c) }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            OutlinedTextField(text, { text = it }, Modifier.weight(1f),
-                placeholder = { Text("اكتب تعليقًا...") },
-                shape = RoundedCornerShape(24.dp), singleLine = true)
-            Spacer(Modifier.width(8.dp))
-            IconButton({
-                if (text.trim().isNotEmpty()) {
-                    repo.addComment(uid, text) { ok, e ->
-                        if (ok) { text = ""; msg = "تم إرسال التعليق ✅" }
-                        else msg = e.orEmpty()
-                    }
-                }
-            }) {
-                Icon(Icons.Default.Send, null, tint = MaterialTheme.colorScheme.primary)
-            }
-        }
-        if (msg.isNotBlank()) {
-            Spacer(Modifier.height(6.dp))
-            Text(msg, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-// ═══════════ الإعدادات ═══════════
-@Composable
-private fun Settings() {
-    val repo = remember { RelationshipRepo() }
-    val nrepo = remember { NotificationRepo() }
-    var blocked by remember { mutableStateOf(listOf<String>()) }
-    var notifications by remember { mutableStateOf(listOf<AppNotification>()) }
-    var message by remember { mutableStateOf("") }
-
-    LaunchedEffect(Unit) {
-        repo.blockList().get().addOnSuccessListener { s ->
-            blocked = s.children.filter { it.getValue(Boolean::class.java) == true }
-                .map { it.key.orEmpty() }
-        }
-        nrepo.inbox().limitToLast(50).get().addOnSuccessListener { s ->
-            notifications = s.children.mapNotNull { it.getValue(AppNotification::class.java) }
-                .sortedByDescending { it.timestamp }
-        }
-    }
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { Text("الإعدادات", fontSize = 24.sp, fontWeight = FontWeight.Bold) }
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Notifications, null,
-                            tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(8.dp))
-                        Text("الإشعارات (${notifications.size})",
-                            fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    if (notifications.isEmpty()) {
-                        Text("لا توجد إشعارات", fontSize = 13.sp, color = Color.Gray)
-                    } else {
-                        notifications.take(5).forEach { n ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                Box(Modifier.size(8.dp).clip(CircleShape)
-                                    .background(if (n.read) Color.Gray
-                                    else Color(0xFF6750A4)))
-                                Spacer(Modifier.width(10.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text(n.title, fontWeight = FontWeight.Bold,
-                                        fontSize = 13.sp)
-                                    Text(n.body, fontSize = 12.sp, color = Color.Gray)
-                                }
-                                if (!n.read) {
-                                    TextButton({
-                                        nrepo.markRead(n.id)
-                                        notifications = notifications.map {
-                                            if (it.id == n.id) it.copy(read = true) else it
-                                        }
-                                    }) { Text("قراءة", fontSize = 11.sp) }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Block, null,
-                            tint = MaterialTheme.colorScheme.error)
-                        Spacer(Modifier.width(8.dp))
-                        Text("قائمة الحظر (${blocked.size})",
-                            fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    if (blocked.isEmpty()) {
-                        Text("لا يوجد محظورون", fontSize = 13.sp, color = Color.Gray)
-                    } else {
-                        blocked.forEach { id ->
-                            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                verticalAlignment = Alignment.CenterVertically) {
-                                UserAvatar(ChatUser(uid = id, name = id), 32.dp)
-                                Spacer(Modifier.width(10.dp))
-                                Text(id, Modifier.weight(1f), fontSize = 13.sp)
-                                TextButton({
-                                    repo.blockList().child(id).setValue(false)
-                                    blocked = blocked.filterNot { it == id }
-                                    message = "تم إلغاء الحظر"
-                                }) { Text("إلغاء", fontSize = 12.sp) }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(14.dp)) {
-                    Icon(Icons.Default.Tune, null, tint = MaterialTheme.colorScheme.secondary)
-                    Spacer(Modifier.height(6.dp))
-                    Text("عام", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(Modifier.height(10.dp))
-                    SettingRow(Icons.Default.Language, "اللغة", "العربية")
-                    SettingRow(Icons.Default.Info, "الإصدار", "1.0.0-v27")
-                    SettingRow(Icons.Default.Person, "الملف الشخصي", "")
-                }
-            }
-        }
-        if (message.isNotBlank()) {
-            item {
-                Text(message, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
-            }
-            
 // ═══════════ دردشة الغرفة ═══════════
 @Composable
 private fun RoomChat(roomId: String, nav: NavHostController) {
@@ -2937,17 +2119,14 @@ private fun AddMerchantDialog(close: () -> Unit,
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(),
                     label = { Text("اسم المنتج") },
-                    leadingIcon = { Icon(Icons.Default.LocalOffer, null) },
-                    singleLine = true)
+                    leadingIcon = { Icon(Icons.Default.LocalOffer, null) }, singleLine = true)
                 OutlinedTextField(desc, { desc = it }, Modifier.fillMaxWidth(),
                     label = { Text("الوصف") },
-                    leadingIcon = { Icon(Icons.Default.Subject, null) },
-                    singleLine = true)
+                    leadingIcon = { Icon(Icons.Default.Subject, null) }, singleLine = true)
                 OutlinedTextField(price, { price = it.filter(Char::isDigit) },
                     Modifier.fillMaxWidth(),
                     label = { Text("السعر (نقاط)") },
-                    leadingIcon = { Icon(Icons.Default.Star, null) },
-                    singleLine = true,
+                    leadingIcon = { Icon(Icons.Default.Star, null) }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
             }
         },
@@ -3121,42 +2300,53 @@ private fun Settings() {
         }
         if (message.isNotBlank()) {
             item {
-                Text(message, color = MaterialTheme.colorScheme.primary, fontSize = 13.sp)
+                Card(modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                    Text(message, Modifier.padding(12.dp), fontSize = 13.sp)
+                }
             }
         }
     }
 }
 
+// ═══════════ مكونات مساعدة UI ═══════════
 @Composable
-private fun SettingRow(icon: androidx.compose.ui.graphics.vector.ImageVector,
-                       title: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, Modifier.size(20.dp), tint = Color.Gray)
-        Spacer(Modifier.width(12.dp))
-        Text(title, Modifier.weight(1f), fontSize = 14.sp)
-        if (value.isNotBlank()) Text(value, fontSize = 13.sp, color = Color.Gray)
-    }
-}
-
-@Composable
-private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector,
-                       title: String, subtitle: String) {
-    Column(Modifier.fillMaxWidth().padding(40.dp),
-        horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, null, Modifier.size(72.dp),
-            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-        Spacer(Modifier.height(12.dp))
-        Text(title, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        Spacer(Modifier.height(4.dp))
-        Text(subtitle, fontSize = 13.sp, color = Color.Gray,
-            textAlign = TextAlign.Center)
+private fun SettingRow(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, value: String) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = Color.Gray, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Text(title, fontSize = 14.sp)
+        }
+        if (value.isNotBlank()) {
+            Text(value, fontSize = 13.sp, color = Color.Gray)
+        }
     }
 }
 
 @Composable
 private fun LoadingBox() {
-    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, subtitle: String) {
+    Column(
+        Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(icon, null, Modifier.size(64.dp), tint = Color.Gray.copy(alpha = 0.5f))
+        Spacer(Modifier.height(12.dp))
+        Text(title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Gray)
+        Spacer(Modifier.height(4.dp))
+        Text(subtitle, fontSize = 12.sp, color = Color.Gray.copy(alpha = 0.8f), textAlign = TextAlign.Center)
     }
 }
