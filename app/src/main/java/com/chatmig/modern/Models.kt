@@ -26,7 +26,9 @@ data class ChatMessage(
     val receiverId: String = "",
     val replyToId: String = "",
     val replyToText: String = "",
-    val replyToSender: String = ""
+    val replyToSender: String = "",
+    val deletedForEveryone: Boolean = false,
+    val deletedFor: List<String> = emptyList()
 )
 
 data class Comment(
