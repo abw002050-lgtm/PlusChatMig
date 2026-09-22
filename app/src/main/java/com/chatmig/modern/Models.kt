@@ -87,3 +87,22 @@ data class AppNotification(
     val read: Boolean = false,
     val timestamp: Long = 0L
 )
+
+// ═══════════ الأصدقاء (جديد) ═══════════
+
+data class FriendRequest(
+    val id: String = "",
+    val fromId: String = "",
+    val fromName: String = "",
+    val fromPhoto: String = "",
+    val toId: String = "",
+    val status: String = "pending", // pending, accepted, rejected
+    val timestamp: Long = 0L
+)
+
+data class Friendship(
+    val friendId: String = "",
+    val friendName: String = "",
+    val friendPhoto: String = "",
+    val since: Long = 0L
+)
