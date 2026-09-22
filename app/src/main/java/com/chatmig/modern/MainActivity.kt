@@ -376,7 +376,7 @@ private fun HomeCard(title: String, subtitle: String,
     }
 }
 
-// ═══════════ صورة المستخدم (مُحسّنة) ═══════════
+// ═══════════ صورة المستخدم ═══════════
 @Composable
 private fun UserAvatar(user: ChatUser, size: androidx.compose.ui.unit.Dp,
                        online: Boolean = false) {
@@ -454,7 +454,8 @@ private fun Users(nav: NavHostController) {
 
 @Composable
 private fun UserRow(u: ChatUser, nav: NavHostController) {
-    Card(modifier = Modifier.fillMaxWidth(), onClick = { nav.navigate("profile/${u.uid}") }) {
+    Card(modifier = Modifier.fillMaxWidth(),
+        onClick = { nav.navigate("profile/${u.uid}") }) {
         Row(Modifier.fillMaxWidth().padding(12.dp),
             verticalAlignment = Alignment.CenterVertically) {
             UserAvatar(u, 48.dp, u.online)
@@ -581,7 +582,8 @@ private fun CreateRoomDialog(close: () -> Unit, create: (String, String) -> Unit
     var name by remember { mutableStateOf("") }
     var topic by remember { mutableStateOf("") }
     AlertDialog(onDismissRequest = close,
-        icon = { Icon(Icons.Default.AddCircle, null, tint = MaterialTheme.colorScheme.primary) },
+        icon = { Icon(Icons.Default.AddCircle, null,
+            tint = MaterialTheme.colorScheme.primary) },
         title = { Text("إنشاء غرفة دردشة", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -605,7 +607,6 @@ private fun CreateRoomDialog(close: () -> Unit, create: (String, String) -> Unit
 @Composable
 private fun EditProfileScreen(nav: NavHostController) {
     val repo = remember { Repo() }
-    val ctx = LocalContext.current
     val myUid = FirebaseAuth.getInstance().uid.orEmpty()
 
     var name by remember { mutableStateOf("") }
@@ -656,11 +657,8 @@ private fun EditProfileScreen(nav: NavHostController) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        // شريط علوي
-        Surface(
-            Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.primaryContainer
-        ) {
+        Surface(Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.primaryContainer) {
             Row(Modifier.fillMaxWidth().padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically) {
                 IconButton({ nav.popBackStack() }) {
@@ -682,7 +680,6 @@ private fun EditProfileScreen(nav: NavHostController) {
             Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // صورة شخصية
             item {
                 Column(Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally) {
@@ -695,8 +692,7 @@ private fun EditProfileScreen(nav: NavHostController) {
                             }
                         } else {
                             UserAvatar(
-                                ChatUser(uid = myUid, name = name,
-                                    photoUrl = photoUrl),
+                                ChatUser(uid = myUid, name = name, photoUrl = photoUrl),
                                 120.dp
                             )
                         }
@@ -716,7 +712,6 @@ private fun EditProfileScreen(nav: NavHostController) {
                 }
             }
 
-            // الاسم
             item {
                 OutlinedTextField(
                     name, { name = it }, Modifier.fillMaxWidth(),
@@ -726,7 +721,6 @@ private fun EditProfileScreen(nav: NavHostController) {
                 )
             }
 
-            // النبذة
             item {
                 OutlinedTextField(
                     bio, { bio = it }, Modifier.fillMaxWidth(),
@@ -737,7 +731,6 @@ private fun EditProfileScreen(nav: NavHostController) {
                 )
             }
 
-            // الدولة
             item {
                 OutlinedTextField(
                     country, { country = it }, Modifier.fillMaxWidth(),
@@ -747,7 +740,6 @@ private fun EditProfileScreen(nav: NavHostController) {
                 )
             }
 
-            // لون الملف
             item {
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
@@ -780,7 +772,6 @@ private fun EditProfileScreen(nav: NavHostController) {
                 }
             }
 
-            // رسالة
             if (msg.isNotBlank()) {
                 item {
                     Card(modifier = Modifier.fillMaxWidth(),
@@ -791,7 +782,6 @@ private fun EditProfileScreen(nav: NavHostController) {
                 }
             }
 
-            // زر الحفظ
             item {
                 Button(
                     onClick = {
@@ -861,7 +851,7 @@ private fun Profile(nav: NavHostController, uid: String) {
     var comments by remember { mutableStateOf(listOf<Comment>()) }
 
     LaunchedEffect(uid) {
-        val l = mainRepo.observeProfile(uid) { user = it }
+        mainRepo.observeProfile(uid) { user = it }
         repo.comments(uid).limitToLast(50).get().addOnSuccessListener { s ->
             comments = s.children.mapNotNull { it.getValue(Comment::class.java) }
                 .sortedByDescending { it.timestamp }
@@ -871,9 +861,9 @@ private fun Profile(nav: NavHostController, uid: String) {
 
     LazyColumn(Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        // رأس الملف
         item {
-            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally) {
                 UserAvatar(user, 100.dp, user.online)
                 Spacer(Modifier.height(12.dp))
                 Text(user.name.ifBlank { "مستخدم" },
@@ -905,13 +895,10 @@ private fun Profile(nav: NavHostController, uid: String) {
             }
         }
 
-        // زر تعديل الملف (لصاحب الحساب)
         if (uid == me) {
             item {
-                Button(
-                    { nav.navigate("editProfile") },
-                    Modifier.fillMaxWidth().height(48.dp)
-                ) {
+                Button({ nav.navigate("editProfile") },
+                    Modifier.fillMaxWidth().height(48.dp)) {
                     Icon(Icons.Default.Edit, null, Modifier.size(20.dp))
                     Spacer(Modifier.width(8.dp))
                     Text("تعديل ملفي الشخصي", fontSize = 15.sp,
@@ -920,10 +907,10 @@ private fun Profile(nav: NavHostController, uid: String) {
             }
         }
 
-        // أزرار المتابعة والدردشة (لغير صاحب الحساب)
         if (uid != me) {
             item {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button({
                         repo.follow(uid, !following) { ok, e ->
                             if (ok) following = !following else error = e.orEmpty()
@@ -1098,7 +1085,6 @@ private fun Chat(peer: String, nav: NavHostController) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        // رأس الدردشة
         Surface(Modifier.fillMaxWidth(),
             color = MaterialTheme.colorScheme.primaryContainer) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
@@ -1214,7 +1200,7 @@ private fun Chat(peer: String, nav: NavHostController) {
     }
 }
 
-// ═══════════ فقاعة الرسالة مع الصورة ═══════════
+// ═══════════ فقاعة الرسالة ═══════════
 @Composable
 private fun MessageBubble(m: ChatMessage) {
     val myUid = FirebaseAuth.getInstance().uid
@@ -1311,10 +1297,13 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
         repo.room(roomId).get().addOnSuccessListener {
             room = it.getValue(ChatRoomModel::class.java) ?: room
         }
-        repo.members(roomId).addOnValueEventListener { s ->
-            members = s.children.mapNotNull { it.getValue(RoomMember::class.java) }
-            isOwner = members.any { it.uid == me && it.role == "owner" }
-        }
+        repo.members(roomId).addValueEventListener(object : ValueEventListener {
+            override fun onDataChange(s: DataSnapshot) {
+                members = s.children.mapNotNull { it.getValue(RoomMember::class.java) }
+                isOwner = members.any { it.uid == me && it.role == "owner" }
+            }
+            override fun onCancelled(e: DatabaseError) {}
+        })
     }
     DisposableEffect(roomId) {
         val l = object : ValueEventListener {
@@ -1357,7 +1346,6 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
             }
         }
 
-        // شريط الأعضاء الأفقي (يظهر عند الفتح)
         if (showMembers && members.isNotEmpty()) {
             Surface(Modifier.fillMaxWidth(),
                 color = Color(0xFF00897B).copy(alpha = 0.15f)) {
@@ -1820,7 +1808,8 @@ private fun Transactions() {
 }
 
 @Composable
-private fun AddMerchantDialog(close: () -> Unit, create: (String, String, Long) -> Unit) {
+private fun AddMerchantDialog(close: () -> Unit,
+                              create: (String, String, Long) -> Unit) {
     var name by remember { mutableStateOf("") }
     var desc by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
@@ -1950,7 +1939,8 @@ private fun Settings() {
                                     else Color(0xFF6750A4)))
                                 Spacer(Modifier.width(10.dp))
                                 Column(Modifier.weight(1f)) {
-                                    Text(n.title, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text(n.title, fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp)
                                     Text(n.body, fontSize = 12.sp, color = Color.Gray)
                                 }
                                 if (!n.read) {
