@@ -23,7 +23,10 @@ data class ChatMessage(
     val assetName: String = "",
     val timestamp: Long = 0L,
     val status: String = "sent",
-    val receiverId: String = ""
+    val receiverId: String = "",
+    val replyToId: String = "",
+    val replyToText: String = "",
+    val replyToSender: String = ""
 )
 
 data class Comment(
