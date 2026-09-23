@@ -2569,13 +2569,13 @@ private fun FriendRequestsDialog(
                                     }
                                     if (tab == 0) {
                                         IconButton({
-                                            repo.acceptRequest(req) { _, _ -> }
+                                            repo.acceptRequest(req) { }
                                         }) {
                                             Icon(Icons.Default.Check, null,
                                                 tint = Color(0xFF4CAF50))
                                         }
                                         IconButton({
-                                            repo.rejectRequest(req) { _, _ -> }
+                                            repo.rejectRequest(req) { }
                                         }) {
                                             Icon(Icons.Default.Close, null,  
                                                 tint = MaterialTheme.colorScheme.error)
