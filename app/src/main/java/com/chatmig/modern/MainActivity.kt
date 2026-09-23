@@ -288,7 +288,8 @@ private fun HomeApp(openPeer: String?) {
             composable("transactions") { Transactions() }
         }
     }
-}// ═══════════ الصفحة الرئيسية ═══════════
+}
+// ═══════════ الصفحة الرئيسية ═══════════
 data class HomeOpt(val title: String, val subtitle: String,
                    val icon: androidx.compose.ui.graphics.vector.ImageVector,
                    val color: Color, val route: String)
@@ -776,7 +777,9 @@ private fun ColorCircle(hex: String, selected: String, onClick: () -> Unit) {
                 modifier = Modifier.size(24.dp))
         }
     }
-}// ═══════════ الملف الشخصي ═══════════
+}
+
+// ═══════════ الملف الشخصي ═══════════
 @Composable
 private fun Profile(nav: NavHostController, uid: String) {
     val repo = remember { RelationshipRepo() }
@@ -1236,7 +1239,6 @@ private fun Chat(peer: String, nav: NavHostController) {
         }
     }
 
-    // ═══════════ نافذة خيارات الحذف ═══════════
     showDeleteDialog?.let { m ->
         val myUid = FirebaseAuth.getInstance().uid.orEmpty()
         val canDeleteForEveryone = m.senderId == myUid && !m.deletedForEveryone
@@ -1269,7 +1271,8 @@ private fun Chat(peer: String, nav: NavHostController) {
             }
         )
     }
-}// ═══════════ فقاعة الرسالة ═══════════
+}
+// ═══════════ فقاعة الرسالة ═══════════
 @Composable
 private fun MessageBubble(
     m: ChatMessage,
@@ -1415,7 +1418,6 @@ private fun EmojiPanel(onPick: (String) -> Unit) {
         }
     }
 }
-
 // ═══════════ دردشة الغرفة ═══════════
 @Composable
 private fun RoomChat(roomId: String, nav: NavHostController) {
@@ -1709,7 +1711,8 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
             }
         )
     }
-}// ═══════════ النقاط ═══════════
+}
+// ═══════════ النقاط ═══════════
 @Composable
 private fun Points(nav: NavHostController) {
     val repo = remember { PointsRepo() }
@@ -1822,7 +1825,9 @@ private fun Points(nav: NavHostController) {
             }
         }
     }
-}// ═══════════ المتجر ═══════════
+}
+
+// ═══════════ المتجر ═══════════
 @Composable
 private fun MerchantScreen(nav: NavHostController) {
     val repo = remember { PointsRepo() }
@@ -1961,6 +1966,7 @@ private fun MerchantScreen(nav: NavHostController) {
     }
 }
 
+// ═══════════ العمليات ═══════════
 @Composable
 private fun Transactions() {
     val repo = remember { PointsRepo() }
@@ -2030,7 +2036,10 @@ private fun Transactions() {
             }
         }
     }
-}@Composable
+}
+
+// ═══════════ إضافة منتج ═══════════
+@Composable
 private fun AddMerchantDialog(close: () -> Unit,
                               create: (String, String, Long) -> Unit) {
     var name by remember { mutableStateOf("") }
@@ -2236,7 +2245,8 @@ private fun Settings() {
             }
         }
     }
-}// ═══════════ شاشة الأصدقاء ═══════════
+}
+// ═══════════ شاشة الأصدقاء ═══════════
 @Composable
 private fun FriendsScreen(nav: NavHostController) {
     val repo = remember { FriendsRepo() }
@@ -2287,7 +2297,8 @@ private fun FriendsScreen(nav: NavHostController) {
         Spacer(Modifier.height(8.dp))
 
         if (incoming.isNotEmpty()) {
-    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
@@ -2343,7 +2354,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
-    modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         onClick = { nav.navigate("chat/${f.friendId}") }
     ) {
         Row(
@@ -2402,7 +2413,9 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
             }
         }
     }
-}@Composable
+}
+
+@Composable
 private fun AddFriendDialog(close: () -> Unit) {
     val repo = remember { FriendsRepo() }
     var query by remember { mutableStateOf("") }
@@ -2485,7 +2498,9 @@ private fun AddFriendDialog(close: () -> Unit) {
         },
         confirmButton = { TextButton(close) { Text("إغلاق") } }
     )
-}@Composable
+}
+
+@Composable
 private fun FriendRequestsDialog(
     incoming: List<FriendRequest>,
     outgoing: List<FriendRequest>,
@@ -2554,13 +2569,13 @@ private fun FriendRequestsDialog(
                                     }
                                     if (tab == 0) {
                                         IconButton({
-                                            repo.acceptRequest(req) {}
+                                            repo.acceptRequest(req) { _, _ -> }
                                         }) {
                                             Icon(Icons.Default.Check, null,
                                                 tint = Color(0xFF4CAF50))
                                         }
                                         IconButton({
-                                            repo.rejectRequest(req) {}
+                                            repo.rejectRequest(req) { _, _ -> }
                                         }) {
                                             Icon(Icons.Default.Close, null,
                                                 tint = MaterialTheme.colorScheme.error)
@@ -2580,6 +2595,7 @@ private fun FriendRequestsDialog(
         confirmButton = { TextButton(onClick = onClose) { Text("إغلاق") } }
     )
 }
+
 // ═══════════ مكونات مساعدة UI ═══════════
 @Composable
 private fun SettingRow(icon: androidx.compose.ui.graphics.vector.ImageVector,
@@ -2622,3 +2638,4 @@ private fun EmptyState(icon: androidx.compose.ui.graphics.vector.ImageVector,
         Text(subtitle, fontSize = 12.sp,
             color = Color.Gray.copy(alpha = 0.8f), textAlign = TextAlign.Center)
     }
+}
