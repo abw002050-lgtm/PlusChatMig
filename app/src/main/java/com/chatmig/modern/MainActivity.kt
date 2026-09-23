@@ -2406,7 +2406,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
                         },
                         onClick = {
                             showMenu = false
-                            repo.removeFriend(f.friendId) {}
+                            repo.removeFriend(f.friendId) { _, _ -> }
                         }
                     )
                 }
