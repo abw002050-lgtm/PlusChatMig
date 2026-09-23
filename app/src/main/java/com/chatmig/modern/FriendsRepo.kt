@@ -72,7 +72,6 @@ class FriendsRepo {
         val myUser = auth.currentUser
         val myName = myUser?.displayName ?: myUser?.email?.substringBefore("@") ?: "مستخدم"
 
-        // طلب صادر (عندي)
         val outgoingKey = friendRequests().child(me).push().key ?: return done(false, "خطأ")
         val outgoing = FriendRequest(
             id = outgoingKey,
@@ -84,7 +83,6 @@ class FriendsRepo {
             timestamp = System.currentTimeMillis()
         )
 
-        // طلب وارد (عند الطرف الآخر)
         val incomingKey = friendRequests().child(target.uid).push().key ?: return done(false, "خطأ")
         val incoming = FriendRequest(
             id = incomingKey,
@@ -107,10 +105,9 @@ class FriendsRepo {
 
     // ═══════════ قبول / رفض ═══════════
 
-    fun acceptRequest(req: FriendRequest, done: (Boolean, String?) -> Unit) {
-        if (me.isBlank()) return done(false, "يجب تسجيل الدخول")
+    fun acceptRequest(req: FriendRequest, done: (Boolean) -> Unit) {
+        if (me.isBlank()) return done(false)
 
-        // طلب الطرف الآخر: ابحث عن الطلب الذي أرسلناه له بـ fromId = req.fromId و toId = me
         friendRequests().child(req.fromId).orderByChild("toId").equalTo(me)
             .get().addOnSuccessListener { s ->
                 val match = s.children.firstOrNull {
@@ -142,10 +139,10 @@ class FriendsRepo {
                     updates["friendRequests/${req.fromId}/$outgoingKey/status"] = "accepted"
                 }
                 db.updateChildren(updates).addOnCompleteListener { t ->
-                    done(t.isSuccessful, t.exception?.localizedMessage)
+                    done(t.isSuccessful)
                 }
             }
-            .addOnFailureListener { done(false, it.localizedMessage) }
+            .addOnFailureListener { done(false) }
     }
 
     fun rejectRequest(req: FriendRequest, done: (Boolean) -> Unit) {
@@ -154,7 +151,6 @@ class FriendsRepo {
     }
 
     fun cancelOutgoing(req: FriendRequest, done: (Boolean) -> Unit) {
-        // حذف الطلب من عندي وعند الطرف الآخر
         val updates = hashMapOf<String, Any?>(
             "friendRequests/$me/${req.id}" to null,
             "friendRequests/${req.toId}/${req.id}" to null
@@ -174,7 +170,6 @@ class FriendsRepo {
 
     // ═══════════ المراقبة (Live) ═══════════
 
-    /** مراقبة قائمة أصدقائي */
     fun observeFriends(onChange: (List<Friendship>) -> Unit): ValueEventListener {
         val listener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
@@ -192,7 +187,6 @@ class FriendsRepo {
         friends().removeEventListener(l)
     }
 
-    /** مراقبة الطلبات الواردة (المعلقة فقط) */
     fun observeIncomingRequests(onChange: (List<FriendRequest>) -> Unit): ValueEventListener {
         val listener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
@@ -212,7 +206,6 @@ class FriendsRepo {
         friendRequests().child(me).removeEventListener(l)
     }
 
-    /** مراقبة الطلبات الصادرة (المعلقة فقط) */
     fun observeOutgoingRequests(onChange: (List<FriendRequest>) -> Unit): ValueEventListener {
         val listener = object : ValueEventListener {
             override fun onDataChange(s: DataSnapshot) {
