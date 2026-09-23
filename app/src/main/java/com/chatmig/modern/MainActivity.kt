@@ -2580,7 +2580,8 @@ private fun FriendRequestsDialog(
         },
         confirmButton = { TextButton(onClick = onClose) { Text("إغلاق") } }
     )
-}// ═══════════ مكونات مساعدة UI ═══════════
+}
+// ═══════════ مكونات مساعدة UI ═══════════
 @Composable
 private fun SettingRow(icon: androidx.compose.ui.graphics.vector.ImageVector,
                        title: String, value: String) {
