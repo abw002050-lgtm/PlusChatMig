@@ -2577,7 +2577,7 @@ private fun FriendRequestsDialog(
                                         IconButton({
                                             repo.rejectRequest(req) { _, _ -> }
                                         }) {
-                                            Icon(Icons.Default.Close, null,
+                                            Icon(Icons.Default.Close, null,  
                                                 tint = MaterialTheme.colorScheme.error)
                                         }
                                     } else {
