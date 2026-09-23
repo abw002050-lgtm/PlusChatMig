@@ -2345,7 +2345,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
     var showMenu by remember { mutableStateOf(false) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+    modifier = Modifier.fillMaxWidth(),
         onClick = { nav.navigate("chat/${f.friendId}") }
     ) {
         Row(
