@@ -2288,7 +2288,7 @@ private fun FriendsScreen(nav: NavHostController) {
 
         if (incoming.isNotEmpty()) {
             Card(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
