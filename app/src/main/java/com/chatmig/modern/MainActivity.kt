@@ -1,4 +1,4 @@
-@file:OptIn(
+ كل@file:OptIn(
     androidx.compose.material3.ExperimentalMaterial3Api::class,
     androidx.compose.foundation.ExperimentalFoundationApi::class
 )
@@ -2569,13 +2569,13 @@ private fun FriendRequestsDialog(
                                     }
                                     if (tab == 0) {
                                         IconButton({
-                                            repo.acceptRequest(req) { }
+                                            repo.acceptRequest(req) { _, _ -> }
                                         }) {
                                             Icon(Icons.Default.Check, null,
                                                 tint = Color(0xFF4CAF50))
                                         }
                                         IconButton({
-                                            repo.rejectRequest(req) { }
+                                            repo.rejectRequest(req) { _, _ -> }
                                         }) {
                                             Icon(Icons.Default.Close, null,  
                                                 tint = MaterialTheme.colorScheme.error)
