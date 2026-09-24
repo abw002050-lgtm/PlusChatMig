@@ -1725,7 +1725,9 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
 // ═══════════ النقاط ═══════════
 @Composable
 private fun Points(nav: NavHostController) {
-var points by remember { mutableStateOf(0L) }
+    val repo = remember { PointsRepo() }
+    val me = FirebaseAuth.getInstance().uid.orEmpty()
+    var points by remember { mutableStateOf(0L) }
 var message by remember { mutableStateOf("") }
 var receiver by remember { mutableStateOf("") }
 var amount by remember { mutableStateOf("") }
