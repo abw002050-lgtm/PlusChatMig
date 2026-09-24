@@ -205,9 +205,19 @@ private fun LoginScreen() {
 
 // ═══════════ HomeActivity ═══════════
 class HomeActivity : ComponentActivity() {
+
+    private var pendingPeer by mutableStateOf<String?>(null)
+
     override fun onCreate(b: Bundle?) {
         super.onCreate(b)
-        setContent { HomeApp(intent.getStringExtra("chatPeer")) }
+        pendingPeer = intent.getStringExtra("chatPeer")
+        setContent { HomeApp(pendingPeer) }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        pendingPeer = intent.getStringExtra("chatPeer")
     }
 }
 
