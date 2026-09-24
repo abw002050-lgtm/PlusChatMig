@@ -21,6 +21,7 @@ class RewardsRepo {
         const val WELCOME_BONUS = 50L
         const val PROFILE_BONUS = 100L
         const val STREAK_TARGET = 7
+        const val FRIEND_BONUS = 500L
         const val ONE_DAY_MS = 24L * 60L * 60L * 1000L
     }
 
@@ -234,7 +235,43 @@ class RewardsRepo {
         }
     }
 
-    // ═══════════ Helpers ═══════════
+    /**
+ * Claim friend invite bonus (called when a new friend accepts).
+ */
+fun claimFriendInvite(friendId: String, done: (ClaimResult) -> Unit) {
+    if (uid.isBlank()) return done(ClaimResult(false, message = "يجب تسجيل الدخول"))
+    if (friendId.isBlank()) return done(ClaimResult(false, message = "معرف صديق غير صالح"))
+
+    val key = "friendBonus_$friendId"
+    rewardsRef().child(key).get().addOnSuccessListener { s ->
+        if (s.getValue(Boolean::class.java) == true) {
+            return@addOnSuccessListener done(
+                ClaimResult(false, message = "تم استلام المكافأة مسبقًا")
+            )
+        }
+        balanceRef().runTransaction(object : Transaction.Handler {
+            override fun doTransaction(c: MutableData): Transaction.Result {
+                c.value = (c.getValue(Long::class.java) ?: 0L) + FRIEND_BONUS
+                return Transaction.success(c)
+            }
+
+            override fun onComplete(e: DatabaseError?, ok: Boolean, snap: DataSnapshot?) {
+                if (!ok) return done(ClaimResult(false, message = "فشل"))
+                rewardsRef().child(key).setValue(true)
+                logTransaction("friend_invite", FRIEND_BONUS, "دعوة صديق جديد")
+                done(
+                    ClaimResult(
+                        success = true,
+                        pointsEarned = FRIEND_BONUS,
+                        message = "🎉 +$FRIEND_BONUS لدعوة صديق!"
+                    )
+                )
+            }
+        })
+    }
+}
+
+// ═══════════ Helpers ═══════════
 
     private fun todayKey(): String {
         val cal = java.util.Calendar.getInstance()
