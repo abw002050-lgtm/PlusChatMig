@@ -1725,41 +1725,112 @@ private fun RoomChat(roomId: String, nav: NavHostController) {
 // ═══════════ النقاط ═══════════
 @Composable
 private fun Points(nav: NavHostController) {
-    val repo = remember { PointsRepo() }
-    val me = FirebaseAuth.getInstance().uid.orEmpty()
-    var points by remember { mutableStateOf(0L) }
-    var message by remember { mutableStateOf("") }
-    var receiver by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
+var points by remember { mutableStateOf(0L) }
+var message by remember { mutableStateOf("") }
+var receiver by remember { mutableStateOf("") }
+var amount by remember { mutableStateOf("") }
 
-    DisposableEffect(me) {
-        if (me.isBlank()) onDispose {}
-        else {
-            val l = repo.observeBalance({ points = it }, { message = it })
-            onDispose { repo.removeBalanceListener(l) }
+val rewardsRepo = remember { RewardsRepo() }
+var rewardState by remember { mutableStateOf(RewardsRepo.RewardState()) }
+
+DisposableEffect(me) {
+    if (me.isBlank()) onDispose {}
+    else {
+        val l = repo.observeBalance({ points = it }, { message = it })
+        val lr = rewardsRepo.observeState { rewardState = it }
+        onDispose {
+            repo.removeBalanceListener(l)
+            rewardsRepo.removeStateListener(lr)
+        }
+    }
+}
+LazyColumn(Modifier.fillMaxSize().padding(16.dp),
+    verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    item {
+        Card(modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFA000))) {
+            Column(Modifier.padding(24.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Star, null, tint = Color.White,
+                        modifier = Modifier.size(28.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("رصيدك الحالي", color = Color.White, fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold)
+                }
+                Spacer(Modifier.height(12.dp))
+                Text("$points", color = Color.White, fontSize = 44.sp,
+                    fontWeight = FontWeight.Bold)
+                Text("نقطة", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
+            }
         }
     }
 
-    LazyColumn(Modifier.fillMaxSize().padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item {
-            Card(modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFA000))) {
-                Column(Modifier.padding(24.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Star, null, tint = Color.White,
-                            modifier = Modifier.size(28.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("رصيدك الحالي", color = Color.White, fontSize = 16.sp,
+    // ═══════════ 🎁 بطاقة المكافآت اليومية ═══════════
+    item {
+        Card(modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+            Column(Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🎁", fontSize = 24.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("المكافآت اليومية",
+                            fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text(
+                            if (rewardState.currentStreak > 0)
+                                "🔥 سلسلة: ${rewardState.currentStreak}/${RewardsRepo.STREAK_TARGET} أيام"
+                            else "ابدأ سلسلتك اليوم!",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+
+                if (rewardState.canClaimDaily) {
+                    Button(
+                        onClick = {
+                            rewardsRepo.claimDaily { result ->
+                                message = result.message
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                    ) {
+                        Text("🎁 استلم +${RewardsRepo.DAILY_REWARD} نقطة",
                             fontWeight = FontWeight.Bold)
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Text("$points", color = Color.White, fontSize = 44.sp,
-                        fontWeight = FontWeight.Bold)
-                    Text("نقطة", color = Color.White.copy(alpha = 0.9f), fontSize = 14.sp)
+                } else {
+                    val hours = rewardState.nextClaimInMs / (60 * 60 * 1000)
+                    val minutes = (rewardState.nextClaimInMs / (60 * 1000)) % 60
+                    OutlinedButton(
+                        onClick = {},
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        enabled = false
+                    ) {
+                        Text("⏰ متاح بعد $hours س و $minutes د")
+                    }
+                }
+
+                if (!rewardState.welcomeClaimed) {
+                    Spacer(Modifier.height(8.dp))
+                    Button(
+                        onClick = {
+                            rewardsRepo.claimWelcome { result ->
+                                message = result.message
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF4CAF50))
+                    ) {
+                        Text("🎉 استلم مكافأة الترحيب (+${RewardsRepo.WELCOME_BONUS})",
+                            fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
+    }
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
