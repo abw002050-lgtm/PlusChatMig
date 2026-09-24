@@ -2346,7 +2346,7 @@ private fun FriendsScreen(nav: NavHostController) {
     }
 
     if (showAddDialog) {
-        AddFriendDialog({ showAddDialog = false })
+        AddFriendDialog({ showAddDialog = false }, nav)
     }
 
     if (showRequestsDialog) {
@@ -2426,7 +2426,7 @@ private fun FriendCard(f: Friendship, nav: NavHostController, repo: FriendsRepo)
 }
 
 @Composable
-private fun AddFriendDialog(close: () -> Unit) {
+private fun AddFriendDialog(close: () -> Unit, nav: NavHostController) {
     val repo = remember { FriendsRepo() }
     var query by remember { mutableStateOf("") }
     var results by remember { mutableStateOf(listOf<ChatUser>()) }
@@ -2498,6 +2498,13 @@ private fun AddFriendDialog(close: () -> Unit) {
                                     }
                                 }) {
                                     Icon(Icons.Default.PersonAdd, null,
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton({
+                                    close()
+                                    nav.navigate("chat/${u.uid}")
+                                }) {
+                                    Icon(Icons.Default.ChatBubble, null,
                                         tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
