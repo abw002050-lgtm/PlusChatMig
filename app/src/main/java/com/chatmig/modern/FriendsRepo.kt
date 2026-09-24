@@ -23,7 +23,8 @@ class FriendsRepo {
 
     /** البحث بالاسم أو البريد (يستخدم users) */
     fun searchUsers(query: String, done: (List<ChatUser>) -> Unit) {
-        if (query.isBlank()) {
+        val q = query.trim()
+        if (q.isBlank()) {
             done(emptyList()); return
         }
         db.child("users").limitToFirst(500).get()
@@ -31,8 +32,10 @@ class FriendsRepo {
                 val list = s.children.mapNotNull { it.getValue(ChatUser::class.java) }
                     .filter {
                         it.uid != me &&
-                        (it.name.contains(query, true) ||
-                         it.uid.contains(query, true))
+                        (
+                            it.name.contains(q, ignoreCase = true) ||
+                            it.uid.contains(q, ignoreCase = true)
+                        )
                     }
                     .take(30)
                 done(list)
@@ -105,13 +108,23 @@ class FriendsRepo {
 
     // ═══════════ قبول / رفض ═══════════
 
+    /**
+     * قبول طلب صداقة وارد.
+     *
+     * المنطق الصحيح:
+     *  - ابحث في "friendRequests/{me}" عن الطلب الوارد المقابل (toId == req.fromId)
+     *  - حدّث status الطلب الوارد إلى "accepted"
+     *  - أضف الصداقة على الجانبين
+     *  - حدّث الطلب الصادر المقابل عند req.fromId (إن وُجد) إلى "accepted"
+     */
     fun acceptRequest(req: FriendRequest, done: (Boolean) -> Unit) {
         if (me.isBlank()) return done(false)
+        if (req.fromId.isBlank()) return done(false)
 
-        friendRequests().child(req.fromId).orderByChild("toId").equalTo(me)
+        // ابحث في مساري عن الطلب الصادر المقابل (toId == req.fromId)
+        friendRequests().child(me).orderByChild("toId").equalTo(req.fromId)
             .get().addOnSuccessListener { s ->
                 val match = s.children.firstOrNull {
-                    it.child("fromId").getValue(String::class.java) == me &&
                     it.child("status").getValue(String::class.java) == "pending"
                 }
                 val outgoingKey = match?.key.orEmpty()
@@ -121,7 +134,9 @@ class FriendsRepo {
                 val myName = myUser?.displayName ?: myUser?.email?.substringBefore("@") ?: "مستخدم"
 
                 val updates = hashMapOf<String, Any?>(
+                    // 1) اقبل الطلب الوارد عندي
                     "friendRequests/$me/${req.id}/status" to "accepted",
+                    // 2) أضف الصداقة على الجانبين
                     "friends/$me/${req.fromId}" to Friendship(
                         friendId = req.fromId,
                         friendName = req.fromName.ifBlank { "مستخدم" },
@@ -135,6 +150,7 @@ class FriendsRepo {
                         since = now
                     )
                 )
+                // 3) اقبل الطلب الصادر المقابل عند req.fromId (إن وُجد)
                 if (outgoingKey.isNotBlank()) {
                     updates["friendRequests/${req.fromId}/$outgoingKey/status"] = "accepted"
                 }
