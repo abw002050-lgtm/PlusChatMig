@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- الأذونات الأساسية -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK"/>
 
     <application
         android:name=".App"
@@ -13,19 +16,30 @@
         android:allowBackup="true"
         android:supportsRtl="true">
 
+        <!--
+          HomeActivity: نشاط التطبيق بعد تسجيل الدخول.
+          launchMode=singleTop: يمنع إنشاء نسخة جديدة عند الضغط على إشعار.
+        -->
         <activity
             android:name=".HomeActivity"
-            android:exported="false"/>
+            android:exported="false"
+            android:launchMode="singleTop"/>
 
+        <!--
+          MainActivity: نقطة الدخول.
+          launchMode=singleTop: نفس السبب.
+        -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTop">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
 
+        <!-- خدمة FCM -->
         <service
             android:name=".MessagingService"
             android:exported="false">
@@ -33,6 +47,23 @@
                 <action android:name="com.google.firebase.MESSAGING_EVENT"/>
             </intent-filter>
         </service>
+
+        <!--
+          إعدادات FCM الافتراضية:
+          - default_notification_channel_id: يربط FCM بالقناة التي أنشأناها.
+          - default_notification_color: لون أيقونة الإشعار.
+        -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="chatmig_messages"/>
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@android:color/holo_purple"/>
+
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@android:drawable/ic_dialog_email"/>
 
     </application>
 
