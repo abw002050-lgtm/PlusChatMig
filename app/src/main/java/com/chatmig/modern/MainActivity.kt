@@ -1814,25 +1814,39 @@ LazyColumn(Modifier.fillMaxSize().padding(16.dp),
                     }
                 }
 
-                if (!rewardState.welcomeClaimed) {
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        onClick = {
-                            rewardsRepo.claimWelcome { result ->
-                                message = result.message
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF4CAF50))
-                    ) {
-                        Text("🎉 استلم مكافأة الترحيب (+${RewardsRepo.WELCOME_BONUS})",
-                            fontWeight = FontWeight.Bold)
-                    }
-                }
+if (!rewardState.welcomeClaimed) {
+    Spacer(Modifier.height(8.dp))
+    Button(
+        onClick = {
+            rewardsRepo.claimWelcome { result ->
+                message = result.message
             }
-        }
+        },
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF4CAF50))
+    ) {
+        Text("🎉 استلم مكافأة الترحيب (+${RewardsRepo.WELCOME_BONUS})",
+            fontWeight = FontWeight.Bold)
     }
+}
+
+if (!rewardState.profileClaimed) {
+    Spacer(Modifier.height(8.dp))
+    Button(
+        onClick = {
+            rewardsRepo.claimProfileComplete { result ->
+                message = result.message
+            }
+        },
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF2196F3))
+    ) {
+        Text("📝 أكمل ملفك → +${RewardsRepo.PROFILE_BONUS} نقطة",
+            fontWeight = FontWeight.Bold)
+    }
+}
         item {
             Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
