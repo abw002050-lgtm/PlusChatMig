@@ -1831,24 +1831,28 @@ if (!rewardState.welcomeClaimed) {
     }
 }
 
-if (!rewardState.profileClaimed) {
-    Spacer(Modifier.height(8.dp))
-    Button(
-        onClick = {
-            rewardsRepo.claimProfileComplete { result ->
-                message = result.message
+            if (!rewardState.profileClaimed) {
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        rewardsRepo.claimProfileComplete { result ->
+                            message = result.message
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2196F3))
+                ) {
+                    Text("📝 أكمل ملفك → +${RewardsRepo.PROFILE_BONUS} نقطة",
+                        fontWeight = FontWeight.Bold)
+                }
             }
-        },
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF2196F3))
-    ) {
-        Text("📝 أكمل ملفك → +${RewardsRepo.PROFILE_BONUS} نقطة",
-            fontWeight = FontWeight.Bold)
-    }
-}
-        item {
-            Card(modifier = Modifier.fillMaxWidth()) {
+        }       ← إغلاق Column
+    }           ← إغلاق Card
+}               ← إغلاق item (بطاقة المكافآت) — ✅ جديد!
+
+item {          ← الآن item جديد في LazyColumn
+    Card(modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Send, null,
