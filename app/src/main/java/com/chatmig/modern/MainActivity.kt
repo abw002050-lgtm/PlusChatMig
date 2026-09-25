@@ -246,7 +246,17 @@ private fun HomeApp(openPeer: String?) {
     }
 
     LaunchedEffect(openPeer) {
-        if (!openPeer.isNullOrBlank()) nav.navigate("chat/$openPeer")
+        if (!openPeer.isNullOrBlank() && openPeer.isNotBlank()) {
+            // Small delay to let NavHost initialize
+            kotlinx.coroutines.delay(300)
+            try {
+                nav.navigate("chat/$openPeer") {
+                    launchSingleTop = true
+                }
+            } catch (_: Exception) {
+                // Ignore navigation errors
+            }
+        }
     }
     Scaffold(
         topBar = {
