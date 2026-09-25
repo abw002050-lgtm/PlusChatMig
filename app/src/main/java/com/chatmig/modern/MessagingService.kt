@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.media.RingtoneManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
@@ -14,12 +15,14 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 /**
- * MessagingService — استقبال FCM وعرض إشعار مرئي حقيقي.
+ * MessagingService - Receives FCM messages and shows rich notifications.
  *
- * يعمل في ثلاث حالات:
- *  1. التطبيق في المقدمة    → لا نعرض إشعارًا (اختياري)
- *  2. التطبيق في الخلفية    → نعرض إشعارًا
- *  3. التطبيق مغلق          → نعرض إشعارًا (بفضل data-only payload)
+ * Features:
+ *  - Rich notification with sender name
+ *  - Deep link to chat on tap
+ *  - Notification channel for Android 8+
+ *  - Saves notification to Firebase inbox
+ *  - Handles token refresh
  */
 class MessagingService : FirebaseMessagingService() {
 
@@ -29,22 +32,16 @@ class MessagingService : FirebaseMessagingService() {
         const val CHANNEL_DESC = "إشعارات الرسائل الجديدة"
     }
 
-    /**
-     * يُستدعى عند استلام رسالة FCM.
-     * يدعم نوعين:
-     *  - notification payload (يصل تلقائيًا)
-     *  - data payload (نحن نبنيه يدويًا)
-     */
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
         val data = message.data
         val notification = message.notification
 
-        // استخرج البيانات من أي من المصدرين
-        val title = data["title"]
+        // Extract from data payload (preferred) or notification payload
+        val senderName = data["senderName"]
             ?: notification?.title
-            ?: data["senderName"]
+            ?: data["title"]
             ?: "رسالة جديدة"
 
         val body = data["body"]
@@ -55,14 +52,16 @@ class MessagingService : FirebaseMessagingService() {
         val senderId = data["senderId"] ?: data["fromId"] ?: ""
         val chatPeer = data["chatPeer"] ?: senderId
 
-        // 1) احفظ الإشعار في Firebase (كما كان سابقًا)
-        saveToInbox(title, body)
+        // Save to Firebase inbox
+        saveToInbox(senderName, body)
 
-        // 2) اعرض إشعارًا مرئيًا حقيقيًا
-        showNotification(title, body, chatPeer)
+        // Show rich notification with deep link
+        showNotification(senderName, body, chatPeer)
     }
 
-    /** حفظ الإشعار في صندوق الإشعارات على Firebase */
+    /**
+     * Save notification to Firebase inbox for in-app display.
+     */
     private fun saveToInbox(title: String, body: String) {
         try {
             val note = AppNotification(
@@ -74,19 +73,21 @@ class MessagingService : FirebaseMessagingService() {
             )
             NotificationRepo().save(note)
         } catch (_: Exception) {
-            // لا نوقف الإشعار إذا فشل الحفظ
+            // Silent fail - do not block notification
         }
     }
 
     /**
-     * إنشاء وعرض الإشعار المرئي.
-     * @param chatPeer معرّف الطرف الآخر لفتح المحادثة عند الضغط
+     * Show a rich notification with deep link to chat.
+     *
+     * @param senderName Name of the sender (shown as title)
+     * @param body Message text (shown as body)
+     * @param chatPeer UID of the peer (used for deep link)
      */
-    private fun showNotification(title: String, body: String, chatPeer: String) {
-        // أ) أنشئ قناة الإشعار (مطلوب Android 8+)
+    private fun showNotification(senderName: String, body: String, chatPeer: String) {
         createChannelIfNeeded()
 
-        // ب) جهّز Intent لفتح HomeActivity على المحادثة
+        // Build deep link intent to HomeActivity
         val intent = Intent(this, HomeActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             putExtra("chatPeer", chatPeer)
@@ -99,33 +100,43 @@ class MessagingService : FirebaseMessagingService() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // ج) ابنِ الإشعار
+        // Rich notification
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_dialog_email)
-            .setContentTitle(title)
+            .setContentTitle(senderName)
             .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(body)
+                    .setSummaryText("شات ميج 33")
+            )
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setAutoCancel(true)
             .setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+            .setVibrate(longArrayOf(0, 250, 200, 250))
             .setContentIntent(pendingIntent)
+            .setColor(0xFF6750A4.toInt())
+            .setShowWhen(true)
 
-        // د) أظهر الإشعار (مع فحص الإذن Android 13+)
+        // Show notification
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 val granted = checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
                 if (granted != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-                    return // المستخدم لم يمنح الإذن
+                    return
                 }
             }
             NotificationManagerCompat.from(this)
                 .notify(System.currentTimeMillis().toInt(), builder.build())
         } catch (_: SecurityException) {
-            // تجاهل بصمت
+            // Permission denied - skip
         }
     }
 
-    /** إنشاء قناة الإشعارات مرة واحدة فقط (مطلوب Android 8+) */
+    /**
+     * Create notification channel (required for Android 8+).
+     */
     private fun createChannelIfNeeded() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -143,14 +154,17 @@ class MessagingService : FirebaseMessagingService() {
         manager.createNotificationChannel(channel)
     }
 
-    /** يُستدعى عندما يجدّد FCM التوكن — نحفظه في قاعدة البيانات */
+    /**
+     * Called when FCM token is refreshed.
+     * Saves the new token to Firebase.
+     */
     override fun onNewToken(token: String) {
         super.onNewToken(token)
         val uid = FirebaseAuth.getInstance().uid ?: return
         try {
             NotificationRepo().tokenRef().setValue(token)
         } catch (_: Exception) {
-            // تجاهل بصمت
+            // Silent fail
         }
     }
 }
