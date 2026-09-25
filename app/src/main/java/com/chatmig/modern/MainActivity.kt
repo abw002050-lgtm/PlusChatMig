@@ -1816,20 +1816,22 @@ LazyColumn(Modifier.fillMaxSize().padding(16.dp),
 
 if (!rewardState.welcomeClaimed) {
     Spacer(Modifier.height(8.dp))
-    Button(
-        onClick = {
-            rewardsRepo.claimWelcome { result ->
-                message = result.message
+            if (!rewardState.welcomeClaimed) {
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        rewardsRepo.claimWelcome { result ->
+                            message = result.message
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF4CAF50))
+                ) {
+                    Text("🎉 استلم مكافأة الترحيب (+${RewardsRepo.WELCOME_BONUS})",
+                        fontWeight = FontWeight.Bold)
+                }
             }
-        },
-        modifier = Modifier.fillMaxWidth().height(48.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF4CAF50))
-    ) {
-        Text("🎉 استلم مكافأة الترحيب (+${RewardsRepo.WELCOME_BONUS})",
-            fontWeight = FontWeight.Bold)
-    }
-}
 
             if (!rewardState.profileClaimed) {
                 Spacer(Modifier.height(8.dp))
@@ -1847,9 +1849,9 @@ if (!rewardState.welcomeClaimed) {
                         fontWeight = FontWeight.Bold)
                 }
             }
-        }       ← إغلاق Column
-    }           ← إغلاق Card
-}               ← إغلاق item (بطاقة المكافآت) — ✅ جديد!
+        }
+    }
+} المكافآت) — ✅ جديد!
 
 item {          ← الآن item جديد في LazyColumn
     Card(modifier = Modifier.fillMaxWidth()) {
