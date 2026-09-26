@@ -110,12 +110,7 @@ class FriendsRepo {
 
     /**
      * قبول طلب صداقة وارد.
-     *
-     * المنطق الصحيح:
-     *  - ابحث في "friendRequests/{me}" عن الطلب الوارد المقابل (toId == req.fromId)
-     *  - حدّث status الطلب الوارد إلى "accepted"
-     *  - أضف الصداقة على الجانبين
-     *  - حدّث الطلب الصادر المقابل عند req.fromId (إن وُجد) إلى "accepted"
+     * بعد القبول، يُمنح كلا الطرفين مكافأة دعوة الصديق (+500) مرة واحدة.
      */
     fun acceptRequest(req: FriendRequest, done: (Boolean) -> Unit) {
         if (me.isBlank()) return done(false)
@@ -154,11 +149,64 @@ class FriendsRepo {
                 if (outgoingKey.isNotBlank()) {
                     updates["friendRequests/${req.fromId}/$outgoingKey/status"] = "accepted"
                 }
+
                 db.updateChildren(updates).addOnCompleteListener { t ->
+                    if (t.isSuccessful) {
+                        // 🎁 مكافأة دعوة الصديق — لكلا الطرفين
+                        val rewards = RewardsRepo()
+                        // مكافأتي (أنا)
+                        rewards.claimFriendInvite(req.fromId) { }
+                        // مكافأة الطرف الآخر
+                        grantFriendBonusToOther(req.fromId)
+                    }
                     done(t.isSuccessful)
                 }
             }
             .addOnFailureListener { done(false) }
+    }
+
+    /**
+     * منح مكافأة دعوة الصديق للطرف الآخر.
+     * يحاول كتابة rewards/{otherUid}/friendBonus_{me} = true
+     * ثم يضيف 500 نقطة إلى balance/{otherUid}/points
+     */
+    private fun grantFriendBonusToOther(otherUid: String) {
+        if (otherUid.isBlank()) return
+        val key = "friendBonus_$me"
+
+        db.child("rewards").child(otherUid).child(key).get()
+            .addOnSuccessListener { snap ->
+                if (snap.getValue(Boolean::class.java) == true) return@addOnSuccessListener
+                // Add bonus
+                db.child("balance").child(otherUid).child("points")
+                    .runTransaction(object : Transaction.Handler {
+                        override fun doTransaction(c: MutableData): Transaction.Result {
+                            c.value = (c.getValue(Long::class.java) ?: 0L) + 500L
+                            return Transaction.success(c)
+                        }
+
+                        override fun onComplete(e: DatabaseError?, ok: Boolean, s: DataSnapshot?) {
+                            if (ok) {
+                                db.child("rewards").child(otherUid).child(key).setValue(true)
+                                // Log transaction for the other user
+                                val txId = db.child("point_transactions").push().key ?: return
+                                db.child("point_transactions").child(otherUid).child(txId)
+                                    .setValue(
+                                        mapOf(
+                                            "transactionId" to txId,
+                                            "type" to "friend_invite",
+                                            "fromId" to me,
+                                            "toId" to otherUid,
+                                            "amount" to 500L,
+                                            "note" to "دعوة صديق جديد",
+                                            "createdAt" to ServerValue.TIMESTAMP,
+                                            "status" to "completed"
+                                        )
+                                    )
+                            }
+                        }
+                    })
+            }
     }
 
     fun rejectRequest(req: FriendRequest, done: (Boolean) -> Unit) {
