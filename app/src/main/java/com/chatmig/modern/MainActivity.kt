@@ -306,6 +306,7 @@ private fun HomeApp(openPeer: String?) {
             composable("points") { Points(nav) }
             composable("merchant") { MerchantScreen(nav) }
             composable("transactions") { Transactions() }
+            composable("leaderboard") { LeaderboardScreen(nav) }
         }
     }
 }
@@ -320,7 +321,9 @@ val homeOptions = listOf(
     HomeOpt("محادثة خاصة", "دردش سرًا", Icons.Default.ChatBubble, Color(0xFFE91E63), "chat/private"),
     HomeOpt("الإعدادات", "تحكم بحسابك", Icons.Default.Settings, Color(0xFF546E7A), "settings"),
     HomeOpt("رصيد النقاط", "أموالي", Icons.Default.Star, Color(0xFFFFA000), "points"),
-    HomeOpt("المتجر", "اشترِ وبع", Icons.Default.ShoppingCart, Color(0xFF7B1FA2), "merchant")
+    HomeOpt("المتجر", "اشترِ وبع", Icons.Default.ShoppingCart, Color(0xFF7B1FA2), "merchant"),
+    HomeOpt("المتصدرون", "الأعلى نقاطًا", Icons.Default.EmojiEvents, Color(0xFFFFD700), "leaderboard"),
+    HomeOpt("النقاط", "تحويل وأكثر", Icons.Default.Send, Color(0xFF2196F3), "points")
 )
 
 @Composable
@@ -2357,6 +2360,196 @@ private fun Settings() {
         }
     }
 }
+// ═══════════ لوحة المتصدرين ═══════════
+@Composable
+private fun LeaderboardScreen(nav: NavHostController) {
+    val repo = remember { LeaderboardRepo() }
+    val me = FirebaseAuth.getInstance().uid.orEmpty()
+    var entries by remember { mutableStateOf(listOf<LeaderboardRepo.LeaderEntry>()) }
+    var loading by remember { mutableStateOf(true) }
+    var myRank by remember { mutableStateOf(0) }
+    var myPoints by remember { mutableStateOf(0L) }
+
+    LaunchedEffect(Unit) {
+        repo.fetchTop(20) { list ->
+            entries = list
+            loading = false
+        }
+        repo.fetchMyRank { rank, pts ->
+            myRank = rank
+            myPoints = pts
+        }
+    }
+
+    Column(Modifier.fillMaxSize()) {
+        // Header
+        Surface(Modifier.fillMaxWidth(), color = Color(0xFFFFA000)) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton({ nav.popBackStack() }) {
+                    Icon(Icons.Default.ArrowBack, null, tint = Color.White)
+                }
+                Text("🏆 المتصدرون", fontWeight = FontWeight.Bold,
+                    color = Color.White, fontSize = 20.sp)
+            }
+        }
+
+        // My rank card
+        if (myRank > 0) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFEADDFF))
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = when (myRank) {
+                            1 -> "🥇"
+                            2 -> "🥈"
+                            3 -> "🥉"
+                            else -> "#$myRank"
+                        },
+                        fontSize = 32.sp
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("ترتيبك", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("أنت", fontWeight = FontWeight.Bold, fontSize = 16.sp,
+                            color = MaterialTheme.colorScheme.primary)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("$myPoints", fontWeight = FontWeight.Bold,
+                            fontSize = 22.sp, color = Color(0xFFFFA000))
+                        Text("نقطة", fontSize = 11.sp, color = Color.Gray)
+                    }
+                }
+            }
+        }
+
+        // List
+        when {
+            loading -> LoadingBox()
+            entries.isEmpty() -> EmptyState(
+                Icons.Default.EmojiEvents,
+                "لا يوجد متصدرون بعد",
+                "ابدأ بكسب النقاط لتظهر هنا!"
+            )
+            else -> LazyColumn(
+                Modifier.fillMaxSize().padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(entries) { entry ->
+                    LeaderCard(entry, entry.uid == me) {
+                        if (entry.uid != me) nav.navigate("profile/${entry.uid}")
+                    }
+                }
+                item { Spacer(Modifier.height(16.dp)) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LeaderCard(
+    entry: LeaderboardRepo.LeaderEntry,
+    isMe: Boolean,
+    onClick: () -> Unit
+) {
+    val bgColor = when {
+        isMe -> Color(0xFFEADDFF)
+        entry.rank == 1 -> Color(0xFFFFF8E1)
+        entry.rank == 2 -> Color(0xFFF5F5F5)
+        entry.rank == 3 -> Color(0xFFFFF3E0)
+        else -> MaterialTheme.colorScheme.surface
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        onClick = onClick
+    ) {
+        Row(
+            Modifier.fillMaxWidth().padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Rank
+            Box(
+                Modifier.size(44.dp).clip(CircleShape)
+                    .background(
+                        when (entry.rank) {
+                            1 -> Color(0xFFFFD700)  // Gold
+                            2 -> Color(0xFFC0C0C0)  // Silver
+                            3 -> Color(0xFFCD7F32)  // Bronze
+                            else -> Color.Gray.copy(alpha = 0.3f)
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = when (entry.rank) {
+                        1 -> "🥇"
+                        2 -> "🥈"
+                        3 -> "🥉"
+                        else -> "${entry.rank}"
+                    },
+                    fontSize = if (entry.rank <= 3) 22.sp else 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            // Avatar
+            UserAvatar(
+                ChatUser(uid = entry.uid, name = entry.name,
+                    photoUrl = entry.photoUrl),
+                44.dp
+            )
+
+            Spacer(Modifier.width(12.dp))
+
+            // Name
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        entry.name.ifBlank { "مستخدم" },
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    if (isMe) {
+                        Spacer(Modifier.width(4.dp))
+                        Text("(أنت)", fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold)
+                    }
+                }
+                Text("المرتبة ${entry.rank}",
+                    fontSize = 11.sp, color = Color.Gray)
+            }
+
+            // Points
+            Column(horizontalAlignment = Alignment.End) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Star, null,
+                        tint = Color(0xFFFFA000),
+                        modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("${entry.points}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFFFFA000))
+                }
+                Text("نقطة", fontSize = 10.sp, color = Color.Gray)
+            }
+        }
+    }
+}
+
 // ═══════════ شاشة الأصدقاء ═══════════
 @Composable
 private fun FriendsScreen(nav: NavHostController) {
